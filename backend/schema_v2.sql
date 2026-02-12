@@ -1,5 +1,8 @@
 -- AI Productivity Hub - Database Schema Evolution v2
 
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- 1. Extend users table to support email and verification status
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
@@ -27,19 +30,11 @@ CREATE TABLE IF NOT EXISTS public.verification_codes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Enable RLS for user_configs (User can only read/write their own config)
-ALTER TABLE public.user_configs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can only access their own config" 
-ON public.user_configs 
-FOR ALL 
-TO authenticated 
-USING (auth.uid() = user_id);
-
--- Update existing logs table to ensure user association
--- ALTER TABLE public.logs ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES public.users(id);
+-- Note: RLS is disabled by default for user_configs in this project
+-- because we use a custom backend login system (BIGINT IDs) 
+-- that does not map directly to Supabase Auth's UUID.
+-- Privacy is enforced at the application layer in main.py.
+-- ALTER TABLE public.user_configs ENABLE ROW LEVEL SECURITY;
 
 -- Add index for fast log searching
 CREATE INDEX IF NOT EXISTS idx_logs_content_trgm ON public.logs USING gin (content gin_trgm_ops);
--- Note: Requires pg_trgm extension if not already enabled:
--- CREATE EXTENSION IF NOT EXISTS pg_trgm;
