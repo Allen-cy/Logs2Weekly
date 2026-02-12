@@ -164,6 +164,16 @@ const App: React.FC = () => {
     setViewMode('login');
   };
 
+  const handleRefreshLogs = async () => {
+    if (!user) return;
+    try {
+      const data = await fetchLogs(user.id);
+      setLogs(data && data.length > 0 ? data : INITIAL_LOGS);
+    } catch (err) {
+      console.error("Manual refresh failed", err);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {user && (
@@ -219,6 +229,7 @@ const App: React.FC = () => {
         {viewMode === 'dashboard' && (
           <DashboardView
             logs={logs}
+            user={user}
             onAddLog={handleAddLog}
             onToggleStatus={toggleLogStatus}
             onDeleteLog={(id) => setLogs(prev => prev.filter(l => l.id !== id))}
@@ -232,6 +243,7 @@ const App: React.FC = () => {
             }))}
             onConvertToTask={(id) => setLogs(prev => prev.map(l => l.id === id ? { ...l, type: LogType.TASK, status: LogStatus.IN_PROGRESS } : l))}
             onRevertToNote={(id) => setLogs(prev => prev.map(l => l.id === id ? { ...l, type: LogType.NOTE, status: undefined } : l))}
+            onRefresh={handleRefreshLogs}
             availableTags={['工作', '学习', '健康']}
           />
         )}

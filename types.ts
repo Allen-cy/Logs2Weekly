@@ -20,6 +20,8 @@ export interface LogEntry {
   tags: string[];
   category?: string;
   user_id?: number;
+  is_processed?: boolean;
+  parent_id?: number | string;
 }
 
 export interface WeeklySummary {

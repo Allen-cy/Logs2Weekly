@@ -2,15 +2,107 @@ from fastapi import FastAPI, HTTPException, Body, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
-from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary
+from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
 from database import get_supabase
 import json
 import bcrypt
 import re
 import uuid
-from datetime import datetime, timedelta
+import asyncio
+from datetime import datetime, timedelta, time
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="AI Productivity Hub API")
+# --- 后台任务逻辑 ---
+
+async def perform_user_aggregation(user_id: int):
+    client = get_supabase()
+    # 1. 获取今天未处理的日志
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    try:
+        response = client.table("logs").select("*")\
+            .eq("user_id", user_id)\
+            .eq("is_processed", False)\
+            .gte("timestamp", today_start)\
+            .execute()
+        
+        raw_logs = response.data
+        if not raw_logs:
+            return None
+
+        # 2. 获取用户配置
+        config_resp = client.table("user_configs").select("*").eq("user_id", user_id).execute()
+        if not config_resp.data:
+            return None
+        
+        config = config_resp.data[0]
+        
+        # 3. 调用 AI 聚合
+        contents = [l["content"] for l in raw_logs]
+        summary_text = await aggregate_daily_logs(
+            api_key=config["api_key_encrypted"],
+            model_type=config["provider"],
+            model_name=config["model_name"],
+            logs=contents
+        )
+        
+        if not summary_text:
+            return None
+
+        # 4. 创建聚合日报记录
+        summary_entry = {
+            "user_id": user_id,
+            "content": summary_text,
+            "type": "summary",
+            "tags": ["每日洞察", "自动聚合"],
+            "timestamp": datetime.now().isoformat(),
+            "is_processed": True
+        }
+        summary_resp = client.table("logs").insert(summary_entry).execute()
+        summary_id = summary_resp.data[0]["id"]
+        
+        # 5. 更新原始记录状态
+        for l in raw_logs:
+            client.table("logs").update({"is_processed": True, "parent_id": summary_id}).eq("id", l["id"]).execute()
+        
+        print(f"✅ 用户 {user_id} 的日报聚合完成 (ID: {summary_id})")
+        return summary_id
+    except Exception as e:
+        print(f"Error in aggregation for user {user_id}: {e}")
+        return None
+
+async def daily_aggregation_task():
+    while True:
+        now = datetime.now()
+        target_time = now.replace(hour=18, minute=0, second=0, microsecond=0)
+        if now >= target_time:
+            target_time += timedelta(days=1)
+            
+        wait_seconds = (target_time - now).total_seconds()
+        print(f"⏰ 下次聚合任务将在 {target_time} 执行，等待 {wait_seconds:.0f} 秒")
+        
+        try:
+            await asyncio.sleep(wait_seconds)
+            client = get_supabase()
+            if not client: continue
+            
+            users_resp = client.table("user_configs").select("user_id").execute()
+            for row in users_resp.data:
+                await perform_user_aggregation(row["user_id"])
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"Aggregation task error: {e}")
+            await asyncio.sleep(60)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动后台任务
+    task = asyncio.create_task(daily_aggregation_task())
+    yield
+    # 停止后台任务
+    task.cancel()
+
+app = FastAPI(title="AI Productivity Hub API", lifespan=lifespan)
 
 # 启用 CORS
 app.add_middleware(
@@ -225,6 +317,13 @@ async def add_log(log: LogEntry):
     data = log.dict()
     response = client.table("logs").insert(data).execute()
     return response.data[0]
+
+@app.post("/api/logs/aggregate")
+async def manual_aggregate(user_id: int = Query(...)):
+    summary_id = await perform_user_aggregation(user_id)
+    if not summary_id:
+        return {"success": False, "message": "今日无待处理的碎片记录，或 AI 聚合失败"}
+    return {"success": True, "summary_id": summary_id}
 
 # --- 原有 AI 服务接口 (保留并微调) ---
 

@@ -117,3 +117,52 @@ async def generate_summary(
         print(f"Generation error: {e}")
         return None
     return None
+
+async def aggregate_daily_logs(
+    api_key: str,
+    model_type: str,
+    model_name: str,
+    logs: list[str]
+) -> Optional[str]:
+    """将碎片化的记录聚合为结构化的日报"""
+    if not logs:
+        return None
+        
+    log_text = "\n".join([f"- {l}" for l in logs])
+    prompt = f"""你是一位极致高效的生产力教练。以下是用户今天的碎片化记录和感悟：
+{log_text}
+
+请将这些记录整理成一份有深度的“每日洞察 (Daily Insight)”。
+要求：
+1. 风格简洁、专业且富有启发性。
+2. 结构清晰，包含：
+   - 📌 核心事项总结
+   - 💡 闪念与感悟提炼
+   - 🛠️ 下一步行动建议
+3. 使用中文。
+4. 长度适中，避免冗余。
+"""
+    try:
+        api_key = api_key.strip()
+        if model_type == "gemini":
+            client = genai.Client(api_key=api_key)
+            model_name = model_name.replace("models/", "")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+            return response.text
+        elif model_type == "kimi":
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.moonshot.cn/v1",
+            )
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.choices[0].message.content
+    except Exception as e:
+        print(f"Aggregation error: {e}")
+        return None
+    return None

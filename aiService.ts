@@ -64,6 +64,18 @@ export const fetchLogs = async (userId: number, query?: string): Promise<LogEntr
     }
 };
 
+export const manualAggregate = async (userId: number): Promise<{ success: boolean, message?: string, summary_id?: number }> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/logs/aggregate?user_id=${userId}`, {
+            method: 'POST'
+        });
+        return await response.json();
+    } catch (err) {
+        console.error("Aggregate error", err);
+        return { success: false, message: "网络请求失败" };
+    }
+}
+
 export const saveLog = async (log: Omit<LogEntry, 'id'>): Promise<LogEntry> => {
     const response = await fetch(`${API_BASE_URL}/logs`, {
         method: 'POST',
