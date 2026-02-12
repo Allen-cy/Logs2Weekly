@@ -145,6 +145,8 @@ class LogEntry(BaseModel):
     status: Optional[str] = None
     tags: List[str] = []
     user_id: Optional[int] = None
+    is_processed: bool = False
+    is_pinned: bool = False
 
 # --- 工具函数 ---
 

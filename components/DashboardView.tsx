@@ -2,7 +2,6 @@
 import React, { useState, useMemo } from 'react';
 import { LogEntry, LogType, LogStatus } from '../types';
 import LogCard from './LogCard';
-import { BarChart, Bar, ResponsiveContainer, XAxis, Cell } from 'recharts';
 import { manualAggregate } from '../aiService';
 
 interface DashboardViewProps {
@@ -61,16 +60,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
+  // 排序逻辑：置顶记录置于最顶端，其余按时间倒序
   const sortedLogs = useMemo(() => {
-    return [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return [...logs].sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
   }, [logs]);
 
-  // 收纳盒：未处理的碎片记录
+  // 收纳盒：未处理的碎片记录，排除置顶记录
   const inboxLogs = useMemo(() => {
-    return sortedLogs.filter(l => !l.is_processed && l.type !== LogType.AI_SUGGESTION && (l.type as any) !== 'summary');
+    return sortedLogs.filter(l =>
+      !l.is_processed &&
+      !l.is_pinned &&
+      l.type !== LogType.AI_SUGGESTION &&
+      (l.type as any) !== 'summary'
+    );
   }, [sortedLogs]);
 
-  // 主区域：日报或历史轨迹
+  // 主区域：日报、置顶记录或搜索结果
   const mainLogs = useMemo(() => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -79,8 +88,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         l.tags.some(t => t.toLowerCase().includes(q))
       );
     }
-    // 默认展示日报和已转化的重点
-    return sortedLogs.filter(l => l.is_processed || l.type === LogType.AI_SUGGESTION || (l.type as any) === 'summary');
+    // 默认展示：置顶记录 (is_pinned) + 聚合日报 (summary/AI_SUGGESTION) + 已处理记录
+    return sortedLogs.filter(l =>
+      l.is_pinned ||
+      l.is_processed ||
+      l.type === LogType.AI_SUGGESTION ||
+      (l.type as any) === 'summary'
+    );
   }, [sortedLogs, searchQuery]);
 
   // 统计
@@ -89,15 +103,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     const tasks = logs.filter(l => l.type === LogType.TASK).length;
     const completionRate = tasks > 0 ? Math.round((completed / tasks) * 100) : 0;
 
-    const chartData = Array.from({ length: 7 }).map((_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      const dayLabel = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()];
-      const count = logs.filter(l => new Date(l.timestamp).toDateString() === date.toDateString()).length;
-      return { day: dayLabel, val: Math.max(count, 0.2) };
-    });
-
-    return { completed, completionRate, chartData };
+    return { completed, completionRate };
   }, [logs]);
 
   return (
@@ -132,7 +138,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="px-4 py-3 bg-[#131b25] border-t border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-500 text-xs italic">
                     <span className="material-icons text-sm">edit_note</span>
-                    记录将暂存进收纳盒
+                    记录将暂存进右侧收纳盒
                   </div>
                   <button
                     type="submit"
@@ -161,7 +167,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 className="text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1 disabled:opacity-50"
               >
                 <span className="material-icons text-sm">{isAggregating ? 'sync' : 'auto_fix_high'}</span>
-                {isAggregating ? '正在生成回报...' : '立即聚合收纳盒'}
+                {isAggregating ? '正在生成汇报...' : '立即聚合收纳盒'}
               </button>
             )}
           </div>
@@ -220,9 +226,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
               ))
             )}
           </div>
-          {inboxLogs.length > 0 && (
-            <p className="mt-4 text-[10px] text-slate-500 text-center italic">会在 18:00 自动整理并将聚合结果存入看板</p>
-          )}
+          <p className="mt-4 text-[10px] text-slate-500 text-center italic">
+            碎片会在此堆积，每日 18:00 定时清理聚合
+          </p>
         </div>
 
         {/* 数据进度 */}

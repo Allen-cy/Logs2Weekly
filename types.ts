@@ -21,6 +21,7 @@ export interface LogEntry {
   category?: string;
   user_id?: number;
   is_processed?: boolean;
+  is_pinned?: boolean;
   parent_id?: number | string;
 }
 
