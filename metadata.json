@@ -1,0 +1,8 @@
+{
+  "name": "AI Productivity Hub",
+  "description": "A high-performance productivity dashboard featuring a smart logger and AI-generated weekly reviews.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

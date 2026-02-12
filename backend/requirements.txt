@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-dotenv
+google-genai
+openai
+supabase
+pydantic
+pydantic-settings
+pytest
+httpx
+passlib[bcrypt]
