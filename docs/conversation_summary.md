@@ -29,10 +29,16 @@
 - **挑战**：解决 SQL 迁移中的 UUID vs BIGINT 类型冲突。
 - **解决方案**：移除 RLS 转由应用逻辑确保隔离。
 
+### 第五阶段：无压记录与 AI 自动聚合
+
+- **功能点**：实现“不记录时间、不分日期”的随时捕捉，由系统定时整理。
+- **解决方案**：引入“收纳盒 (Inbox)”隔离碎片化记录，并开发后端定时任务（18:00）调用 AI 自动生成聚合日报。
+- **数据库增强**：增加 `is_processed` 状态追踪与 `parent_id` 溯源字段。
+
 ---
 
 ## 3. 交付物清单
 
 - **代码库**：GitHub `origin/main`。
-- **数据库脚本**：`backend/schema_v2.sql`。
-- **文档包**：PRD、用户手册、Roadmap。
+- **数据库脚本**：`backend/schema_v3_aggregation.sql` (已升级支持聚合功能)。
+- **文档包**：PRD、用户手册、Roadmap、演练说明 (walkthrough)。
