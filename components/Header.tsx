@@ -61,8 +61,8 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={onRegenerate}
                 disabled={isGenerating || !config.apiKeyTested}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all ${isGenerating
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : 'bg-white text-background-dark hover:bg-slate-200 shadow-xl active:scale-95'
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : 'bg-white text-background-dark hover:bg-slate-200 shadow-xl active:scale-95'
                   }`}
               >
                 <span className={`material-icons text-sm ${isGenerating ? 'animate-spin' : ''}`}>
@@ -72,9 +72,15 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            <div className="w-10 h-10 rounded-xl border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 transition-all cursor-pointer">
+            <button
+              onClick={() => setViewMode('profile')}
+              className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${viewMode === 'profile'
+                  ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                  : 'border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                }`}
+            >
               <span className="material-icons text-xl">account_circle</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>

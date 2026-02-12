@@ -19,6 +19,7 @@ export interface LogEntry {
   timestamp: Date;
   tags: string[];
   category?: string;
+  user_id?: number;
 }
 
 export interface WeeklySummary {
@@ -40,11 +41,13 @@ export interface WeeklySummary {
 }
 
 export interface User {
+  id: number;
   username: string;
   phone: string;
+  email?: string;
 }
 
-export type ViewMode = 'dashboard' | 'review' | 'setup' | 'login' | 'register';
+export type ViewMode = 'dashboard' | 'review' | 'setup' | 'login' | 'register' | 'profile';
 
 export type ModelProvider = 'gemini' | 'kimi';
 

@@ -7,105 +7,116 @@ interface LoginViewProps {
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onSwitchToRegister }) => {
-    const [phone, setPhone] = useState('');
+    const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-
-        if (!phone || !password) {
-            setError('请输入手机号和密码');
-            return;
-        }
-
-        setLoading(true);
+        setIsLoading(true);
 
         try {
             const response = await fetch('http://localhost:8000/api/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ phone, password }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account, password }),
             });
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.detail || '登录失败');
+            if (response.ok && data.success) {
+                onLoginSuccess(data.user);
+            } else {
+                setError(data.detail || '登录失败，请检查账号和密码');
             }
-
-            onLoginSuccess(data.user);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError('连接服务器失败，请稍后重试');
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="max-w-md mx-auto mt-20 px-4">
-            <div className="bg-surface-dark rounded-[2rem] border border-slate-800 p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none select-none">
-                    <span className="material-icons text-8xl">login</span>
-                </div>
+        <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 py-12">
+            <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="bg-slate-900/60 backdrop-blur-3xl rounded-[3rem] border border-white/10 p-10 shadow-2xl relative overflow-hidden">
+                    {/* Background Decorative Elements */}
+                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl"></div>
 
-                <div className="relative z-10">
-                    <div className="text-center mb-10">
-                        <h2 className="text-2xl font-black text-white mb-2">欢迎回来</h2>
-                        <p className="text-slate-500 text-sm">登录以访问您的工作台</p>
-                    </div>
-
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div>
-                            <input
-                                type="text"
-                                placeholder="手机号码"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-3.5 px-5 text-white text-sm focus:border-primary focus:outline-none transition-all"
-                            />
-                        </div>
-
-                        <div>
-                            <input
-                                type="password"
-                                placeholder="密码"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-3.5 px-5 text-white text-sm focus:border-primary focus:outline-none transition-all"
-                            />
+                    <div className="relative z-10">
+                        <div className="text-center mb-10">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-primary/20 text-primary mb-6 shadow-xl shadow-primary/10">
+                                <span className="material-icons text-3xl">login</span>
+                            </div>
+                            <h2 className="text-3xl font-black text-white tracking-tight mb-2">欢迎回来</h2>
+                            <p className="text-slate-400 text-sm font-medium">登录以访问您的 AI 助手</p>
                         </div>
 
                         {error && (
-                            <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-bold flex items-center gap-2">
-                                <span className="material-icons text-base">error_outline</span>
+                            <div className="bg-danger/10 border border-danger/30 text-danger text-xs px-4 py-3 rounded-2xl mb-6 flex items-center gap-2 animate-in fade-in zoom-in-95">
+                                <span className="material-icons text-sm">error</span>
                                 {error}
                             </div>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-4 rounded-2xl bg-primary text-white font-black shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-95 transition-all text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? '登录中...' : '登录'}
-                        </button>
-                    </form>
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">账号 (手机号或邮箱)</label>
+                                <div className="group relative">
+                                    <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg transition-colors group-focus-within:text-primary">account_circle</span>
+                                    <input
+                                        type="text"
+                                        value={account}
+                                        onChange={(e) => setAccount(e.target.value)}
+                                        className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-white text-sm focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
+                                        placeholder="138... / example@mail.com"
+                                        required
+                                    />
+                                </div>
+                            </div>
 
-                    <div className="mt-8 text-center">
-                        <p className="text-slate-500 text-xs">
-                            还没有账户？{' '}
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center px-4">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">密码</label>
+                                    <button type="button" className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline transition-all">忘记密码?</button>
+                                </div>
+                                <div className="group relative">
+                                    <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg transition-colors group-focus-within:text-primary">lock</span>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-white text-sm focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
+                                        placeholder="********"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full bg-primary hover:bg-primary-hover text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2 mt-4"
+                            >
+                                {isLoading ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <>立即登录 <span className="material-icons text-sm">arrow_forward</span></>
+                                )}
+                            </button>
+                        </form>
+
+                        <div className="mt-8 text-center">
                             <button
                                 onClick={onSwitchToRegister}
-                                className="text-primary font-bold hover:underline"
+                                className="text-xs text-slate-500 hover:text-white transition-colors flex items-center gap-1 mx-auto"
                             >
-                                立即注册
+                                还没有账户? <span className="text-primary font-bold">创建一个</span>
                             </button>
-                        </p>
+                        </div>
                     </div>
                 </div>
             </div>

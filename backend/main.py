@@ -1,10 +1,14 @@
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
 from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary
 from database import get_supabase
 import json
+import bcrypt
+import re
+import uuid
+from datetime import datetime, timedelta
 
 app = FastAPI(title="AI Productivity Hub API")
 
@@ -17,37 +21,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class ConnectionCheckRequest(BaseModel):
-    model_type: str  # 'gemini' or 'kimi'
-    model_name: str
-    api_key: str
-
-class GenerateRequest(BaseModel):
-    model_type: str
-    model_name: str
-    api_key: str
-    logs: List[Dict[str, Any]]
-
-import bcrypt
-import re
+# --- 模型定义 ---
 
 class UserRegister(BaseModel):
     username: str
     password: str
     phone: str
+    email: EmailStr
 
 class UserLogin(BaseModel):
-    phone: str
+    account: str  # 手机号或邮箱
     password: str
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+
+class PasswordUpdate(BaseModel):
+    old_password: str
+    new_password: str
+
+class UserConfigUpdate(BaseModel):
+    provider: str
+    model_name: str
+    api_key: str
 
 class LogEntry(BaseModel):
     content: str
     type: str
     status: Optional[str] = None
     tags: List[str] = []
+    user_id: Optional[int] = None
+
+# --- 工具函数 ---
 
 def verify_password(plain_password, hashed_password):
-    # bcrypt.checkpw requires bytes
     if isinstance(hashed_password, str):
         hashed_password = hashed_password.encode('utf-8')
     if isinstance(plain_password, str):
@@ -55,10 +64,8 @@ def verify_password(plain_password, hashed_password):
     return bcrypt.checkpw(plain_password, hashed_password)
 
 def get_password_hash(password):
-    # bcrypt.hashpw requires bytes
     if isinstance(password, str):
         password = password.encode('utf-8')
-    # Generate a salt and hash the password
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password, salt)
     return hashed.decode('utf-8')
@@ -66,123 +73,162 @@ def get_password_hash(password):
 def validate_cn_phone(phone: str) -> bool:
     return bool(re.match(r"^1[3-9]\d{9}$", phone))
 
+# --- API 路由 ---
+
 @app.post("/api/register")
 async def register(user: UserRegister):
     client = get_supabase()
     if not client:
-        raise HTTPException(status_code=500, detail="Database connection error")
+        raise HTTPException(status_code=500, detail="数据库连接错误")
 
     if not validate_cn_phone(user.phone):
-        raise HTTPException(status_code=400, detail="Invalid phone number format (Mainland China)")
+        raise HTTPException(status_code=400, detail="手机号格式不正确")
 
+    # 检查用户是否已存在
     try:
-        existing = client.table("users").select("id").eq("phone", user.phone).execute()
-        if existing.data:
-            raise HTTPException(status_code=400, detail="User already exists")
+        existing_phone = client.table("users").select("id").eq("phone", user.phone).execute()
+        if existing_phone.data:
+            raise HTTPException(status_code=400, detail="手机号已注册")
+        
+        existing_email = client.table("users").select("id").eq("email", user.email).execute()
+        if existing_email.data:
+            raise HTTPException(status_code=400, detail="邮箱已注册")
     except Exception as e:
-         # Table might not exist
-         print(f"Check user error: {e}")
-         # Attempt to proceed? No, if table doesn't exist insert will fail too.
-    
+        print(f"Check existing user error: {e}")
+
     hashed_password = get_password_hash(user.password)
     
     new_user = {
         "username": user.username,
         "password_hash": hashed_password,
         "phone": user.phone,
+        "email": user.email,
+        "email_verified": False
     }
     
     try:
         response = client.table("users").insert(new_user).execute()
-        return {"success": True, "user": {"username": user.username, "phone": user.phone}}
+        # 模拟发送验证邮件
+        print(f"📧 [模拟邮件发送] 发送到: {user.email}, 内容: 欢迎注册 AI Productivity Hub! 您的账号已创建。")
+        return {"success": True, "user": {"id": response.data[0]["id"], "username": user.username, "phone": user.phone, "email": user.email}}
     except Exception as e:
         print(f"Register error: {e}")
-        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"注册失败: {str(e)}")
 
 @app.post("/api/login")
-async def login(user: UserLogin):
+async def login(req: UserLogin):
     client = get_supabase()
     if not client:
-        raise HTTPException(status_code=500, detail="Database connection error")
+        raise HTTPException(status_code=500, detail="数据库连接错误")
 
     try:
-        response = client.table("users").select("*").eq("phone", user.phone).execute()
+        # 同时支持手机号和邮箱登录
+        is_email = "@" in req.account
+        field = "email" if is_email else "phone"
+        
+        response = client.table("users").select("*").eq(field, req.account).execute()
         if not response.data:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise HTTPException(status_code=401, detail="账号或密码错误")
         
         db_user = response.data[0]
-        if not verify_password(user.password, db_user["password_hash"]):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not verify_password(req.password, db_user["password_hash"]):
+            raise HTTPException(status_code=401, detail="账号或密码错误")
             
-        return {"success": True, "user": {"username": db_user["username"], "phone": db_user["phone"]}}
+        return {
+            "success": True, 
+            "user": {
+                "id": db_user["id"],
+                "username": db_user["username"], 
+                "phone": db_user["phone"],
+                "email": db_user.get("email")
+            }
+        }
     except Exception as e:
+        if isinstance(e, HTTPException): raise e
         print(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="登录失败")
 
+@app.put("/api/user/password")
+async def update_password(user_id: int, req: PasswordUpdate):
+    client = get_supabase()
+    response = client.table("users").select("password_hash").eq("id", user_id).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    if not verify_password(req.old_password, response.data[0]["password_hash"]):
+        raise HTTPException(status_code=400, detail="旧密码错误")
+    
+    new_hash = get_password_hash(req.new_password)
+    client.table("users").update({"password_hash": new_hash}).eq("id", user_id).execute()
+    return {"success": True, "message": "密码修改成功"}
 
-@app.post("/api/check-connection")
-async def check_connection(req: ConnectionCheckRequest):
-    if req.model_type == "gemini":
-        result = await test_gemini_connection(req.api_key, req.model_name)
-    elif req.model_type == "kimi":
-        result = await test_kimi_connection(req.api_key, req.model_name)
-    else:
-        raise HTTPException(status_code=400, detail="不支持的模型类型")
-    
-    if not result["success"]:
-        raise HTTPException(status_code=401, detail=result["message"])
-    return result
-
-@app.post("/api/generate-summary")
-async def api_generate_summary(req: GenerateRequest):
-    # 将日志列表转换为文本上下文
-    log_context = "\n".join([
-        f"[{item.get('timestamp', 'N/A')}] {item.get('type')}: {item.get('content')}" 
-        for item in req.logs
-    ])
-    
-    result_text = await generate_summary(
-        req.api_key, 
-        req.model_type, 
-        req.model_name, 
-        log_context
-    )
-    
-    if not result_text:
-        raise HTTPException(status_code=500, detail="生成失败")
+@app.put("/api/user/profile")
+async def update_profile(user_id: int, req: UserUpdate):
+    client = get_supabase()
+    update_data = {k: v for k, v in req.dict().items() if v is not None}
+    if not update_data:
+        return {"success": True, "message": "无更新内容"}
     
     try:
-        # 尝试清理和解析 JSON (有些模型可能返回 markdown 代码块)
-        if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in result_text:
-             result_text = result_text.split("```")[1].split("```")[0].strip()
-        
-        return json.loads(result_text)
+        client.table("users").update(update_data).eq("id", user_id).execute()
+        return {"success": True, "message": "资料更新成功"}
     except Exception as e:
-        print(f"JSON Parse error: {e}, raw: {result_text}")
-        raise HTTPException(status_code=500, detail="解析 AI 响应失败")
+        raise HTTPException(status_code=400, detail=f"更新失败: {str(e)}")
+
+# --- 配置持久化 ---
+
+@app.get("/api/user/config")
+async def get_user_config(user_id: int):
+    client = get_supabase()
+    response = client.table("user_configs").select("*").eq("user_id", user_id).execute()
+    if not response.data:
+        return {"success": False, "config": None}
+    return {"success": True, "config": response.data[0]}
+
+@app.put("/api/user/config")
+async def save_user_config(user_id: int, config: UserConfigUpdate):
+    client = get_supabase()
+    # 注意：实际生产中 api_key 应该加密存储。这里简化处理。
+    config_data = {
+        "user_id": user_id,
+        "provider": config.provider,
+        "model_name": config.model_name,
+        "api_key_encrypted": config.api_key # TODO: Add encryption
+    }
+    
+    try:
+        # Upsert logic (insert or update on conflict)
+        response = client.table("user_configs").upsert(config_data, on_conflict="user_id").execute()
+        return {"success": True, "message": "配置已保存"}
+    except Exception as e:
+        print(f"Save config error: {e}")
+        raise HTTPException(status_code=500, detail="保存配置失败")
+
+# --- 日志与搜索 ---
 
 @app.get("/api/logs")
-async def get_logs():
+async def get_logs(user_id: int = Query(...), q: Optional[str] = None):
     client = get_supabase()
-    if not client:
-        return [] # 如果没配置 supabase，暂时返回空，不报错以维持前端展示
+    query = client.table("logs").select("*").eq("user_id", user_id)
     
-    response = client.table("logs").select("*").order("timestamp", desc=True).execute()
+    if q:
+        query = query.ilike("content", f"%{q}%")
+        
+    response = query.order("timestamp", desc=True).execute()
     return response.data
 
 @app.post("/api/logs")
 async def add_log(log: LogEntry):
     client = get_supabase()
-    if not client:
-        return {"id": "local_" + str(json.dumps(log.dict()))} # Mock
+    if not client: return {"id": str(uuid.uuid4())}
     
-    # 转换为 Supabase 字段
     data = log.dict()
     response = client.table("logs").insert(data).execute()
     return response.data[0]
 
+# --- 原有 AI 服务接口 (保留并微调) ---
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+

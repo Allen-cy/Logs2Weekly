@@ -50,9 +50,13 @@ export const generateWeeklyReport = async (logs: LogEntry[], config: AppConfig):
 };
 
 // 后端持久化交互
-export const fetchLogs = async (): Promise<LogEntry[]> => {
+export const fetchLogs = async (userId: number, query?: string): Promise<LogEntry[]> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/logs`);
+        let url = `${API_BASE_URL}/logs?user_id=${userId}`;
+        if (query) {
+            url += `&q=${encodeURIComponent(query)}`;
+        }
+        const response = await fetch(url);
         return await response.json();
     } catch (err) {
         console.error("Fetch logs error", err);
