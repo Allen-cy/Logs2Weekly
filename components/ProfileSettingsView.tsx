@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { User, AppConfig } from '../types';
 import { API_BASE_URL } from '../aiService';
 
