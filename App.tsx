@@ -11,6 +11,7 @@ import { generateWeeklyReport, fetchLogs, saveLog } from './aiService';
 import RegisterView from './components/RegisterView';
 import LoginView from './components/LoginView';
 import { API_BASE_URL } from './aiService';
+import UserManualModal from './components/UserManualModal';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('login');
@@ -24,6 +25,7 @@ const App: React.FC = () => {
     apiKey: '',
     apiKeyTested: false,
   });
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // 1. 登录成功后加载用户配置
   useEffect(() => {
@@ -184,8 +186,11 @@ const App: React.FC = () => {
           onRegenerate={handleRegenerate}
           isGenerating={isGenerating}
           config={config}
+          onOpenGuide={() => setIsGuideOpen(true)}
         />
       )}
+
+      <UserManualModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {viewMode === 'register' && (

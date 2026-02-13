@@ -1,8 +1,10 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { LogEntry, LogType, LogStatus } from '../types';
 import LogCard from './LogCard';
 import { manualAggregate } from '../aiService';
+import GreetingSection from './GreetingSection';
+import ActivityHeatmap from './ActivityHeatmap';
 
 interface DashboardViewProps {
   logs: LogEntry[];
@@ -34,6 +36,19 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   const [input, setInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAggregating, setIsAggregating] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
+
+  useEffect(() => {
+    const hasClosed = localStorage.getItem('hasClosedGuide');
+    if (hasClosed === 'true') {
+      setShowGuide(false);
+    }
+  }, []);
+
+  const handleCloseGuide = () => {
+    setShowGuide(false);
+    localStorage.setItem('hasClosedGuide', 'true');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,16 +125,65 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <div className="lg:col-span-8 space-y-8">
         {/* 顶部搜索 */}
-        <div className="relative group">
-          <span className="material-icons absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors">search</span>
-          <input
-            type="text"
-            placeholder="搜索您的记录、日报或关键词..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2rem] py-5 pl-14 pr-6 text-white text-sm focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-xl"
-          />
+        <GreetingSection username={user?.username || 'User'} />
+
+        {/* 顶部搜索 */}
+        <div className="relative group flex items-center gap-3">
+          <div className="relative flex-1">
+            <span className="material-icons absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+            <input
+              type="text"
+              placeholder="搜索您的记录、日报或关键词..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2rem] py-5 pl-14 pr-6 text-white text-sm focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-xl"
+            />
+          </div>
+          <button
+            className="h-14 w-14 rounded-[2rem] bg-slate-800/80 hover:bg-primary hover:text-white text-slate-400 border border-white/5 flex items-center justify-center transition-all shadow-xl active:scale-95"
+            onClick={() => {/* Currently search is realtime, button is visual reinforcement or can clear/focus */ }}
+          >
+            <span className="material-icons">arrow_forward</span>
+          </button>
         </div>
+
+        {/* Pinned User Guide */}
+        {showGuide && !searchQuery && (
+          <div className="bg-gradient-to-r from-blue-900/40 to-primary/20 border border-primary/30 rounded-2xl p-6 relative animate-in fade-in slide-in-from-top-4">
+            <button
+              onClick={handleCloseGuide}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+              title="Don't show this again"
+            >
+              <span className="material-icons text-sm">close</span>
+            </button>
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-primary/20 rounded-xl">
+                <span className="material-icons text-primary text-2xl">auto_awesome</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white mb-2">Welcome to Your AI Productivity Hub!</h3>
+                <p className="text-sm text-slate-300 mb-4 max-w-xl">
+                  Log2Weekly helps you capture thoughts effortlessly and turns them into structured insights.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-400 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-slate-800 px-1.5 py-0.5 rounded text-white font-mono border border-slate-700">Cmd+Enter</span>
+                    <span>Quick Submit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-slate-800 px-1.5 py-0.5 rounded text-white font-mono border border-slate-700">- [ ] Task</span>
+                    <span>Create To-Do</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-icons text-[14px] text-amber-500">inventory_2</span>
+                    <span>Inbox auto-aggregates daily</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 无压快记输入 */}
         <section>
@@ -246,17 +310,33 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* 标签 */}
-        <div className="bg-surface-dark rounded-xl border border-slate-800 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white">Focus Tags</h3>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {availableTags.map(tag => (
-              <span key={tag} className="px-2 py-1 rounded-md bg-slate-800 text-slate-400 text-[11px] font-bold border border-slate-700">
-                #{tag}
-              </span>
+        {/* Activity Heatmap */}
+        <ActivityHeatmap logs={logs} />
+
+        {/* Top Contexts */}
+        <div className="bg-surface-dark rounded-xl border border-slate-800 p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-white mb-4">Top Contexts</h3>
+          <div className="space-y-3">
+            {useMemo(() => {
+              const tagCounts: Record<string, number> = {};
+              logs.forEach(log => {
+                log.tags.forEach(tag => {
+                  tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                });
+              });
+              return Object.entries(tagCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            }, [logs]).map(([tag, count], index) => (
+              <div key={tag} className="flex items-center justify-between text-xs group cursor-pointer hover:bg-white/5 p-1 -mx-1 rounded">
+                <span className="flex items-center gap-2 text-slate-300 group-hover:text-primary transition-colors">
+                  <span className={`w-2 h-2 rounded-full ${['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-green-500'][index % 5]}`}></span>
+                  #{tag}
+                </span>
+                <span className="text-slate-500 font-mono group-hover:text-white transition-colors">{count} logs</span>
+              </div>
             ))}
+            {logs.length === 0 && <p className="text-slate-600 italic text-xs">No tags yet. Add #tags to your logs!</p>}
           </div>
         </div>
       </aside>
