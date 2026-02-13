@@ -9,3 +9,4 @@ pydantic-settings
 pytest
 httpx
 passlib[bcrypt]
+email-validator
