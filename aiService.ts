@@ -1,7 +1,8 @@
 
 import { LogEntry, WeeklySummary, AppConfig } from "./types";
 
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "") + "/api";
+// 确保在生产环境下，API 始终指向根目录下的 /api，防止产生畸形路径
+export const API_BASE_URL = "/api";
 
 export const testConnection = async (config: AppConfig): Promise<{ success: boolean; message: string }> => {
     try {
