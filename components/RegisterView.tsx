@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { User } from '../types';
+import { API_BASE_URL } from '../aiService';
 
 interface RegisterViewProps {
     onRegisterSuccess: (user: User) => void;
@@ -20,7 +20,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onRegisterSuccess, onSwitch
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:8000/api/register', {
+            const response = await fetch(`${API_BASE_URL}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

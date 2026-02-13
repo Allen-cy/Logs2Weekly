@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { User, AppConfig } from '../types';
+import { API_BASE_URL } from '../aiService';
 
 interface ProfileSettingsViewProps {
     user: User;
@@ -31,7 +31,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch(`http://localhost:8000/api/user/profile?user_id=${user.id}`, {
+            const response = await fetch(`${API_BASE_URL}/user/profile?user_id=${user.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, email }),
@@ -57,7 +57,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch(`http://localhost:8000/api/user/password?user_id=${user.id}`, {
+            const response = await fetch(`${API_BASE_URL}/user/password?user_id=${user.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { User } from '../types';
+import { API_BASE_URL } from '../aiService';
 
 interface LoginViewProps {
     onLoginSuccess: (user: User) => void;
@@ -18,7 +18,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onSwitchToRegiste
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:8000/api/login', {
+            const response = await fetch(`${API_BASE_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ account, password }),
