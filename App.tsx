@@ -27,6 +27,23 @@ const App: React.FC = () => {
   });
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
+  // 0. 初始化：检查本地存储的用户信息
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser && parsedUser.id) {
+          setUser(parsedUser);
+          setViewMode('dashboard');
+        }
+      } catch (e) {
+        console.error("Failed to parse stored user", e);
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
+
   // 1. 登录成功后加载用户配置
   useEffect(() => {
     const loadUserConfig = async () => {
@@ -156,6 +173,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('user');
     setUser(null);
     setLogs([]);
     setConfig({
@@ -206,6 +224,7 @@ const App: React.FC = () => {
         {viewMode === 'login' && (
           <LoginView
             onLoginSuccess={(u) => {
+              localStorage.setItem('user', JSON.stringify(u));
               setUser(u);
               setViewMode('dashboard'); // 登录后直接进入 Dashboard，配置会自动加载
             }}
