@@ -195,6 +195,7 @@ def get_password_hash(password):
 def validate_cn_phone(phone: str) -> bool:
     return bool(re.match(r"^1[3-9]\d{9}$", phone))
 
+@app.get("/health")
 @app.get("/api/health")
 async def health_check():
     supabase_configured = os.getenv("SUPABASE_URL") is not None and os.getenv("SUPABASE_KEY") is not None
@@ -208,6 +209,7 @@ async def health_check():
 
 # --- API 路由 ---
 
+@app.post("/register")
 @app.post("/api/register")
 async def register(user: UserRegister):
     client = get_supabase()
@@ -248,6 +250,7 @@ async def register(user: UserRegister):
         print(f"Register error: {e}")
         raise HTTPException(status_code=500, detail=f"注册失败: {str(e)}")
 
+@app.post("/login")
 @app.post("/api/login")
 async def login(req: UserLogin):
     client = get_supabase()
@@ -368,6 +371,7 @@ async def manual_aggregate(user_id: int = Query(...)):
 
 # --- AI 服务接口 ---
 
+@app.post("/check-connection")
 @app.post("/api/check-connection")
 async def check_connection(req: ConnectionTest):
     try:
@@ -385,6 +389,7 @@ async def check_connection(req: ConnectionTest):
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=f"连接测试失败: {str(e)}")
 
+@app.post("/generate-summary")
 @app.post("/api/generate-summary")
 async def generate_summary_api(req: SummaryRequest):
     # 将日志列表转换为文本
