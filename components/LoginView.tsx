@@ -32,8 +32,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onSwitchToRegiste
             } else {
                 setError(data.detail || '登录失败，请检查账号和密码');
             }
-        } catch (err) {
-            setError('连接服务器失败，请稍后重试');
+        } catch (err: any) {
+            console.error('Login error:', err);
+            setError(`连接服务器失败: ${err.message || '请检查网络'}`);
         } finally {
             setIsLoading(false);
         }
