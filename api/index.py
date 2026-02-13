@@ -2,8 +2,25 @@ from fastapi import FastAPI, HTTPException, Body, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
-from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
-from database import get_supabase
+import sys
+import os
+
+# 确保当前目录在路径中，适配不同运行环境
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+try:
+    from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+    from database import get_supabase
+except ImportError:
+    try:
+        from api.services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+        from api.database import get_supabase
+    except ImportError:
+        # 最后的保底尝试：相对导入
+        from .services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+        from .database import get_supabase
 import json
 import bcrypt
 import re
