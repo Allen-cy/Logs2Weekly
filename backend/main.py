@@ -148,6 +148,17 @@ class LogEntry(BaseModel):
     is_processed: bool = False
     is_pinned: bool = False
 
+class ConnectionTest(BaseModel):
+    model_type: str
+    model_name: str
+    api_key: str
+
+class SummaryRequest(BaseModel):
+    model_type: str
+    model_name: str
+    api_key: str
+    logs: List[Any]
+
 # --- 工具函数 ---
 
 def verify_password(plain_password, hashed_password):
@@ -327,7 +338,61 @@ async def manual_aggregate(user_id: int = Query(...)):
         return {"success": False, "message": "今日无待处理的碎片记录，或 AI 聚合失败"}
     return {"success": True, "summary_id": summary_id}
 
-# --- 原有 AI 服务接口 (保留并微调) ---
+# --- AI 服务接口 ---
+
+@app.post("/api/check-connection")
+async def check_connection(req: ConnectionTest):
+    try:
+        if req.model_type == "gemini":
+            result = await test_gemini_connection(req.api_key, req.model_name)
+        elif req.model_type == "kimi":
+            result = await test_kimi_connection(req.api_key, req.model_name)
+        else:
+            raise HTTPException(status_code=400, detail="不支持的模型类型")
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+        return result
+    except Exception as e:
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(status_code=500, detail=f"连接测试失败: {str(e)}")
+
+@app.post("/api/generate-summary")
+async def generate_summary_api(req: SummaryRequest):
+    # 将日志列表转换为文本
+    log_texts = []
+    for log in req.logs:
+        if isinstance(log, str):
+            log_texts.append(log)
+        elif isinstance(log, dict):
+            log_texts.append(log.get("content", ""))
+    
+    full_content = "\n".join(log_texts)
+    
+    try:
+        summary_text = await generate_summary(
+            api_key=req.api_key,
+            model_type=req.model_type,
+            model_name=req.model_name,
+            log_content=full_content
+        )
+        
+        if not summary_text:
+            raise HTTPException(status_code=500, detail="生成周报失败，请重试")
+            
+        # 尝试解析 JSON
+        try:
+            # 去掉可能存在的 markdown 代码块包裹
+            clean_json = summary_text.replace("```json", "").replace("```", "").strip()
+            return json.loads(clean_json)
+        except:
+            return {"executiveSummary": summary_text} # 降级处理
+            
+    except Exception as e:
+        print(f"Generate summary API error: {e}")
+        raise HTTPException(status_code=500, detail="生成异常")
+
+# --- 原有 AI 服务接口 (保留) ---
 
 @app.get("/health")
 async def health():

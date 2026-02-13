@@ -10,6 +10,7 @@ import { generateWeeklyReport, fetchLogs, saveLog } from './aiService';
 
 import RegisterView from './components/RegisterView';
 import LoginView from './components/LoginView';
+import { API_BASE_URL } from './aiService';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('login');
@@ -29,7 +30,7 @@ const App: React.FC = () => {
     const loadUserConfig = async () => {
       if (!user) return;
       try {
-        const response = await fetch(`http://localhost:8000/api/user/config?user_id=${user.id}`);
+        const response = await fetch(`${API_BASE_URL}/user/config?user_id=${user.id}`);
         const data = await response.json();
         if (data.success && data.config) {
           setConfig({
@@ -51,7 +52,7 @@ const App: React.FC = () => {
     const saveUserConfig = async () => {
       if (!user || !config.apiKeyTested) return;
       try {
-        await fetch(`http://localhost:8000/api/user/config?user_id=${user.id}`, {
+        await fetch(`${API_BASE_URL}/user/config?user_id=${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
