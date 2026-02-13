@@ -3,7 +3,7 @@
 import asyncio
 import sys
 import os
-from backend.services.models_service import test_kimi_connection
+from api.services.models_service import test_kimi_connection
 
 async def main():
     print("=" * 60)

@@ -37,5 +37,5 @@
 ## 3. 交付物清单
 
 - **代码库**：GitHub `origin/main`。
-- **数据库脚本**：`backend/schema_v4_pinning.sql` (升级支持置顶与多维检索)。
+- **数据库脚本**：`api/schema_v4_pinning.sql` (升级支持置顶与多维检索)。
 - **文档包**：PRD、用户手册、Roadmap、演练说明 (walkthrough) 及 **对话记录总结 (Conversation Summary)**。

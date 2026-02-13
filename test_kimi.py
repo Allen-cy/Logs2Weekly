@@ -2,7 +2,7 @@
 """测试 Kimi API 连接的独立脚本"""
 import asyncio
 import sys
-from backend.services.models_service import test_kimi_connection
+from api.services.models_service import test_kimi_connection
 
 async def main():
     print("=" * 60)
