@@ -1,6 +1,6 @@
 # Logs2Weekly (AI Productivity Hub)
 
-![Product Header](assets/header.png)
+![Product Header](assets/header.jpg)
 
 > **J 人福音｜专为计划型、条理型用户打造的轻量记录工具**  
 > 🌐 **公网访问地址**: [https://logs2weekly.chunyu2026.dpdns.org/](https://logs2weekly.chunyu2026.dpdns.org/)
