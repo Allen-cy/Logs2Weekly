@@ -195,6 +195,17 @@ def get_password_hash(password):
 def validate_cn_phone(phone: str) -> bool:
     return bool(re.match(r"^1[3-9]\d{9}$", phone))
 
+@app.get("/api/health")
+async def health_check():
+    supabase_configured = os.getenv("SUPABASE_URL") is not None and os.getenv("SUPABASE_KEY") is not None
+    return {
+        "status": "healthy",
+        "env": {
+            "supabase": "configured" if supabase_configured else "missing",
+            "python_version": sys.version
+        }
+    }
+
 # --- API 路由 ---
 
 @app.post("/api/register")
