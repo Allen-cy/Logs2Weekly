@@ -1,108 +1,139 @@
-# 🚀 项目经验教训登记册 (Lessons Learned Registry)
+# 📘 深度复盘：Log2Weekly 生产环境部署实战经验教训登记册
 
-**项目名称**: Log2Weekly (AI Productivity Hub)
-**记录日期**: 2026-02-13
-**记录人**: AI 辅助开发助手 (Antigravity)
-**主题**: Vercel 生产环境部署、CORS 跨域与全链路连通性修复
-
----
-
-## 🛑 1. 致命问题：Vercel Python Serverless 路径规范
-
-### 🔴 现象 (What happened)
-
-- 部署后访问 `/api/health` 或登录接口，全部返回 **404 Not Found** (HTML 页面)。
-- 前端解析报错：`Unexpected token < in JSON at position 0`。
-
-### 🔍 根因 (Root Cause)
-
-- **目录命名不当**：Vercel 默认自动扫描 `api/` 目录作为 Serverless Functions 的入口，而本项目原使用 `backend/`。
-- **入口文件模糊**：Vercel 推荐使用 `index.py` 作为默认入口，我们使用了 `main.py`。
-- **缺少包标识**：Python 模块导入失败，因为子目录缺少 `__init__.py`。
-
-### ✅ 解决方案 (Solution)
-
-1. **重构目录**：将 `backend/` 重命名为 `api/`。
-2. **重命名入口**：将 `api/main.py` -> `api/index.py`。
-3. **补全标识**：在 `api/` 及 `api/services/` 下创建空的 `__init__.py`。
-4. **路由重写 (`vercel.json`)**：
-
-   ```json
-   {
-     "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index.py" }]
-   }
-   ```
+**项目**: Log2Weekly (AI Productivity Hub)
+**日期**: 2026-02-13
+**复盘维度**: 用户反馈 -> 问题定义 -> 深度分析 -> 解决过程 -> 最终方案
 
 ---
 
-## 🛑 2. 前端陷阱：硬编码与畸形 URL 构造
+## 🛑 战役一：Vercel Serverless 部署与 404 路由迷局
 
-### 🔴 现象
+### 1. 问题的起点 (User Feedback)
+>
+> **用户反馈**：“部署到 Vercel 后，访问 API 返回 404 HTML 页面，前端报错 `Unexpected token <`。”
 
-- 本地开发一切正常，生产环境点击登录无反应或报错“连接服务器失败”。
-- 浏览器控制台显示请求地址为 `https://logs2-weekly.vercel.app/logs2-weekly.vercel.app/api/login` (双重域名) 或 `localhost:8000`。
+### 2. 问题定义 (Problem Definition)
 
-### 🔍 根因
+Vercel 平台无法正确识别并托管我们的 Python FastAPI 后端，导致 API 请求未被路由到 Python 运行时，而是被当
+作静态资源（未找到）处理。
 
-1. **硬编码残余**：组件 (`LoginView.tsx`) 中直接写死了 `http://localhost:8000`，未走统一配置。
-2. **基准路径逻辑漏洞**：`aiService.ts` 试图智能判断 `VITE_API_BASE_URL`，但在 Vercel 生产环境中，若环境变量与当前域名拼接不当，会导致相对路径被错误解析为“当前路径 + 域名”。
+### 3. 深度分析 (Analysis)
 
-### ✅ 解决方案
+- **核心矛盾**：本地开发习惯（`backend/main.py`）与 Vercel Serverless 标准（推崇 `api/index.py`）不兼容。
+- **机制探究**：Vercel 的零配置（Zero Config）特性会默认扫描 `api/` 目录。如果代码在 `backend/`，Vercel 根本不知道这是后端代码。
+- **配置缺失**：原有的 `vercel.json` 缺少明确的 `rewrites` 规则，导致 `/api/login` 这样的路径没有被转发给 Python 脚本处理。
 
-- **统一寻址**：所有组件禁止出现 URL 字符串，统一引入 `API_BASE_URL` 常量。
-- **相对路径优先**：在同域部署模式下（前端后端都在 Vercel），直接使用相对路径 `/api` 是最稳妥的，能自动适配 http/https 和任何域名。
+### 4. 解决过程 (Solving Process)
 
-  ```typescript
-  // aiService.ts (Fix)
-  export const API_BASE_URL = "/api"; 
+1. **目录重构**：果断放弃 `backend/` 命名，遵循 Vercel 惯例重命名为 `api/`。
+2. **入口标准化**：将 `main.py` 重命名为 `index.py`，因为 Vercel 会自动将 `api/index.py` 映射为 `/api` 根路径。
+3. **模块补全**：在 Python 子目录中强制添加 `__init__.py`，确保 Serverless 环境能正确解析本地包依赖。
+
+### 5. 最终方案 (The Solution)
+
+- **文件结构**：
+
+  ```text
+  /api
+    ├── index.py      <-- 统一入口
+    ├── services/     <-- 业务逻辑 (含 __init__.py)
+    └── requirements.txt
+  ```
+
+- **配置 (vercel.json)**：
+
+  ```json
+  {
+    "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index.py" }]
+  }
   ```
 
 ---
 
-## 🛑 3. 隐形杀手：CORS 跨域与浏览器安全策略
+## 🛑 战役二：前端硬编码与“本地化”残留
 
-### 🔴 现象
+### 1. 问题的起点 (User Feedback)
+>
+> **用户反馈**：“后端修好了，但点击登录还是提示‘连接服务器失败’。”
 
-- 使用 `curl` 或 Postman 测试生产接口 **HTTP 200 成功**。
-- **浏览器** 访问同一接口报错 `Network Error` 或 `Failed to fetch`。
-- 控制台无详细后端日志（请求甚至未到达后端业务逻辑）。
+### 2. 问题定义 (Problem Definition)
 
-### 🔍 根因
+前端代码（React 组件）在构建生产包时，仍然试图连接开发者的本地环境（localhost），导致生产环境的网络请求直接被浏览器拒绝（Connection Refused）。
 
-- **混用通配符**：FastAPI 的 `CORSMiddleware` 配置了 `allow_origins=["*"]` 同时开启了 `allow_credentials=True`。
-- **标准冲突**：现代浏览器安全规范禁止在允许 `Access-Control-Allow-Credentials: true` 的同时使用通配符 `*` 作为 `Access-Control-Allow-Origin`。预检请求 (`OPTIONS`) 失败，主请求被浏览器直接拦截。
+### 3. 深度分析 (Analysis)
 
-### ✅ 解决方案
+- **代码审查**：在 `LoginView.tsx` 等组件中发现了写死的 `http://localhost:8000` 字符串。
+- **环境差异**：本地开发因为可以在本机跑后端，所以也是通的；但用户访问 Vercel 公网链接时，浏览器是在用户电脑上运行的，用户的 `localhost` 并没有我们的后端服务。
 
-- **生产级策略**：若需支持 Cookie/凭证，必须指定具体域名。
-- **快速修复策略**：若暂无 Cookie 需求或需快速跑通，保持通配符但关闭凭证许可。
+### 4. 解决过程 (Solving Process)
+
+1. **全局搜索**：扫描所有 `.tsx` 文件中的 `http://` 和 `localhost` 关键字。
+2. **抽象封装**：引入 `API_BASE_URL` 常量，禁止在 UI 组件中直接拼接 URL。
+3. **动态注入**：利用 Vite 的环境变量机制（`import.meta.env`）来区分环境，但在同域部署（前后端同源）的最佳实践下，方案进化为**相对路径**。
+
+### 5. 最终方案 (The Solution)
+
+- **组件层**：
+
+  ```typescript
+  // 错误示范
+  fetch('http://localhost:8000/api/login')
+  // 正确示范
+  import { API_BASE_URL } from '../aiService';
+  fetch(`${API_BASE_URL}/login`)
+  ```
+
+---
+
+## 🛑 战役三：CORS 跨域隐患与畸形路径
+
+### 1. 问题的起点 (User Feedback)
+>
+> **用户反馈**：“依然连接失败，但在终端用 curl 测试是通的。”
+
+### 2. 问题定义 (Problem Definition)
+
+这是一个复合型问题：
+
+1. **CORS 策略冲突**：后端虽然允许了所有来源（`*`），但同时也允许了凭证（Credentials），这违反了浏览器的安全规范。
+2. **路径畸形**：前端 `alert` 出来的请求地址竟然是 `https://domain.com/domain.com/api`（双重域名）。
+
+### 3. 深度分析 (Analysis)
+
+- **关于 CORS**：`curl` 是非浏览器客户端，不受同源策略限制，所以能通。浏览器在发起 `POST` 请求（带 JSON）前会发 `OPTIONS` 预检。若后端响应头 `Access-Control-Allow-Origin: *` 且 `Access-Control-Allow-Credentials: true`，浏览器会直接拦截请求并报错 `Network Error`。
+- **关于路径**：`aiService.ts` 原逻辑是 `(VITE_ENV || "") + "/api"`。在 Vercel 生产环境中，如果环境变量未正确注入或被错误解析，可能导致基准路径变成了“当前页面域名”的相对拼接，最终导致 URL 叠加。
+
+### 4. 解决过程 (Solving Process)
+
+1. **后端降级**：既然暂不需要跨域 Cookie，果断将 `allow_credentials` 设为 `False`，保留 `allow_origins=["*"]` 以确保最大兼容性。
+2. **前端归一**：摒弃复杂的环境变量判断，利用 Vercel 单体部署的优势，直接使用**绝对路径** `/api`。
+
+### 5. 最终方案 (The Solution)
+
+- **后端 (FastAPI)**：
 
   ```python
   app.add_middleware(
       CORSMiddleware,
       allow_origins=["*"],
-      allow_credentials=False, # 关键修正
-      allow_methods=["*"],
-      allow_headers=["*"],
+      allow_credentials=False,  # 关键修正：配合通配符必须为 False
+      ...
   )
+  ```
+
+- **前端 (aiService.ts)**：
+
+  ```typescript
+  // 生产环境最稳妥配置：始终指向当前域名的 /api 根路径
+  export const API_BASE_URL = "/api";
   ```
 
 ---
 
-## 💡 最佳实践总结 (Takeaways)
+## 💡 总结与建议 (Conclusion)
 
-1. **部署即测试**：不要信任本地环境的连通性，`localhost` 与 Serverless 运行环境差异巨大。
-2. **日志分级**：前端 `catch` 块中必须保留 `console.error`，否则生产环境出现“静默失败”时无法从控制台获取线索。
-3. **工具验证互补**：
-   - `curl`/Postman：验证后端代码逻辑和数据库连接。
-   - 浏览器控制台：验证 CORS、网络协议 HTTPS、Mixed Content 问题。
-   - **两者缺一不可**。
-4. **依赖锁定**：本地 Python 环境宽松，Serverless 环境严格。务必确保 `requirements.txt` 包含所有隐式依赖（如本次漏掉的 `email-validator`）。
+通过本次问题的层层剥洋葱，我们得出了**全链路排查法则**：
 
----
-
-> **下次行动指南**:
->
-> - 遇到 404 -> 查 `vercel.json` 和目录结构。
-> - 遇到 Network Error -> 查 CORS 和 `API_BASE_URL`。
-> - 遇到 500 (Server Error) -> 查 Vercel Function Logs 和 `requirements.txt`。
+1. **先测后端**：用 `curl` 排除代码逻辑和数据库问题。
+2. **再看控制台**：浏览器控制台的报错是 CORS 和路径拼写错误的照妖镜。
+3. **最后看代码**：硬编码和环境变量配置往往是环境差异问题的罪魁祸首。
