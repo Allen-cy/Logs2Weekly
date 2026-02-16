@@ -10,3 +10,4 @@ pytest
 httpx
 passlib[bcrypt]
 email-validator
+fastapi-mail

@@ -21,7 +21,7 @@ const UserManualModal: React.FC<UserManualModalProps> = ({ isOpen, onClose }) =>
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-white leading-tight">用户使用手册</h2>
-                            <p className="text-xs text-slate-400">Log2Weekly User Guide</p>
+                            <p className="text-xs text-slate-400">Log2Weekly 交互指南</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors group">
@@ -51,38 +51,38 @@ const UserManualModal: React.FC<UserManualModalProps> = ({ isOpen, onClose }) =>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-primary/30 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-icons text-amber-400 text-sm">edit_note</span>
-                                    <h4 className="font-bold text-slate-200 text-sm">无压快记 (Quick Log)</h4>
+                                    <span className="material-icons text-amber-400 text-sm">bolt</span>
+                                    <h4 className="font-bold text-slate-200 text-sm">多模型 AI 引擎</h4>
                                 </div>
                                 <p className="text-xs text-slate-400">
-                                    支持 Markdown 语法。输入 <code className="bg-slate-700 px-1 rounded">- [ ]</code> 自动识别为任务。快捷键 <kbd className="bg-slate-700 px-1.5 py-0.5 rounded text-[10px] text-white font-mono">Cmd/Ctrl + Enter</kbd> 快速提交。
+                                    支持 Google Gemini, Moonshot Kimi, 智谱 GLM 及通义千问。您可以根据任务需求，在“助手配置”中随时切换最适合的模型。
                                 </p>
                             </div>
                             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-primary/30 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-icons text-blue-400 text-sm">inventory_2</span>
-                                    <h4 className="font-bold text-slate-200 text-sm">智能收纳盒 (Inbox)</h4>
+                                    <span className="material-icons text-blue-400 text-sm">analytics</span>
+                                    <h4 className="font-bold text-slate-200 text-sm">数据洞察仪表盘</h4>
                                 </div>
                                 <p className="text-xs text-slate-400">
-                                    所有新记录默认进入右侧收纳盒。AI 会定期（或手动触发）将其聚合整理，归类到主看板中。
+                                    自动分析工作负载与专注领域。通过环形图和趋势图，直观展现您的生产力波动，帮助您科学调整工作节奏。
                                 </p>
                             </div>
                             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-primary/30 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-icons text-purple-400 text-sm">auto_awesome</span>
-                                    <h4 className="font-bold text-slate-200 text-sm">AI 周报生成</h4>
+                                    <span className="material-icons text-purple-400 text-sm">history</span>
+                                    <h4 className="font-bold text-slate-200 text-sm">周报历史归档</h4>
                                 </div>
                                 <p className="text-xs text-slate-400">
-                                    在 "Weekly Review" 页面，AI (Gemini/Kimi) 会根据您本周的所有记录，自动生成包含执行摘要、重点回顾和下周建议的完整周报。
+                                    每一份生成的周报都可以一键保存至云端历史库。您可以随时回溯过去的工作表现，作为绩效回顾或个人复盘的重要依据。
                                 </p>
                             </div>
                             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-primary/30 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-icons text-green-400 text-sm">analytics</span>
-                                    <h4 className="font-bold text-slate-200 text-sm">进度追踪</h4>
+                                    <span className="material-icons text-green-400 text-sm">reorder</span>
+                                    <h4 className="font-bold text-slate-200 text-sm">甘特图时间轴</h4>
                                 </div>
                                 <p className="text-xs text-slate-400">
-                                    自动统计任务完成率。右侧 "Recent Intensity" 热力图可视化展示您的每日活跃度。
+                                    任务进度的可视化排列。清晰展现各项工作的起止时间与当前状态（进行中/已完成），让项目进度尽在掌握。
                                 </p>
                             </div>
                         </div>
@@ -136,9 +136,9 @@ const UserManualModal: React.FC<UserManualModalProps> = ({ isOpen, onClose }) =>
                             Pro Tips
                         </h3>
                         <ul className="list-disc list-inside space-y-1 text-xs text-slate-400 ml-1">
-                            <li>您可以点击任意 Log 卡片右上角的 "Convert to Task" 将其转化为待办事项。</li>
-                            <li>在 "Profile" 中设置您的 AI 模型偏好 (Kimi 或 Gemini)，以获得最佳生成效果。</li>
-                            <li>每日 18:00 后，Inbox 中的内容会被 AI 建议聚合（需点击 "立即聚合" 按钮）。</li>
+                            <li>您可以点击任意 Log 卡片右上角的 "转为任务" 将其转化为待办事项。</li>
+                            <li>在 "助手配置" 中设置您的 AI 模型偏好 (Kimi 或 Gemini)，以获得最佳生成效果。</li>
+                            <li>每日 18:00 后，收纳盒中的内容会被 AI 建议聚合（需点击 "立即生成周报" 按钮）。</li>
                         </ul>
                     </section>
 

@@ -5,6 +5,7 @@ import LogCard from './LogCard';
 import { manualAggregate } from '../aiService';
 import GreetingSection from './GreetingSection';
 import ActivityHeatmap from './ActivityHeatmap';
+import GanttView from './GanttView';
 
 interface DashboardViewProps {
   logs: LogEntry[];
@@ -18,6 +19,9 @@ interface DashboardViewProps {
   onRevertToNote: (id: string) => void;
   onRefresh: () => void;
   availableTags: string[];
+  onViewInbox: () => void;
+  onViewArchive: () => void;
+  retentionDays?: number;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({
@@ -31,12 +35,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   onConvertToTask,
   onRevertToNote,
   onRefresh,
-  availableTags
+  availableTags,
+  onViewInbox,
+  onViewArchive,
+  retentionDays
 }) => {
   const [input, setInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAggregating, setIsAggregating] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
+  const [vizMode, setVizMode] = useState<'heatmap' | 'gantt'>('heatmap');
+  const [mobileTab, setMobileTab] = useState<'home' | 'inbox'>('home');
+  const [timeView, setTimeView] = useState<'day' | 'week' | 'month'>('day');
 
   useEffect(() => {
     const hasClosed = localStorage.getItem('hasClosedGuide');
@@ -84,7 +94,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     });
   }, [logs]);
 
-  // 收纳盒：未处理的碎片记录，排除置顶记录
+  // 收纳盒：仅展示未处理的碎片记录，排除置顶记录
   const inboxLogs = useMemo(() => {
     return sortedLogs.filter(l =>
       !l.is_processed &&
@@ -94,23 +104,44 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     );
   }, [sortedLogs]);
 
-  // 主区域：日报、置顶记录或搜索结果
+  // 主区域：隐藏已处理的琐碎记录，仅展示未处理记录和“日报(Summary)”
   const mainLogs = useMemo(() => {
+    let filtered = sortedLogs;
+
+    // 搜索模式
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return sortedLogs.filter(l =>
+      filtered = filtered.filter(l =>
         l.content.toLowerCase().includes(q) ||
         l.tags.some(t => t.toLowerCase().includes(q))
       );
+    } else {
+      // 正常模式：过滤掉【已处理】且【不是日报】的记录
+      filtered = filtered.filter(l => {
+        const isSummary = (l.type as any) === 'summary';
+        // 如果是已处理的普通记录，隐藏它
+        if (l.is_processed && !isSummary) return false;
+        return true;
+      });
+
+      // 时间维度过滤
+      const now = new Date();
+      if (timeView === 'day') {
+        const today = new Date().toDateString();
+        filtered = filtered.filter(l => new Date(l.timestamp).toDateString() === today);
+      } else if (timeView === 'week') {
+        const lastWeek = new Date();
+        lastWeek.setDate(now.getDate() - 7);
+        filtered = filtered.filter(l => new Date(l.timestamp) >= lastWeek);
+      } else if (timeView === 'month') {
+        const lastMonth = new Date();
+        lastMonth.setMonth(now.getMonth() - 1);
+        filtered = filtered.filter(l => new Date(l.timestamp) >= lastMonth);
+      }
     }
-    // 默认展示：置顶记录 (is_pinned) + 聚合日报 (summary/AI_SUGGESTION) + 已处理记录
-    return sortedLogs.filter(l =>
-      l.is_pinned ||
-      l.is_processed ||
-      l.type === LogType.AI_SUGGESTION ||
-      (l.type as any) === 'summary'
-    );
-  }, [sortedLogs, searchQuery]);
+
+    return filtered;
+  }, [sortedLogs, searchQuery, timeView]);
 
   // 统计
   const stats = useMemo(() => {
@@ -122,8 +153,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   }, [logs]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <div className="lg:col-span-8 space-y-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-24 lg:pb-0">
+      <div className={`lg:col-span-8 space-y-8 ${mobileTab !== 'home' ? 'hidden lg:block' : 'block'}`}>
         {/* 顶部搜索 */}
         <GreetingSection username={user?.username || 'User'} />
 
@@ -162,22 +193,22 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="material-icons text-primary text-2xl">auto_awesome</span>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white mb-2">Welcome to Your AI Productivity Hub!</h3>
+                <h3 className="text-lg font-bold text-white mb-2">欢迎使用 AI 生产力中心！</h3>
                 <p className="text-sm text-slate-300 mb-4 max-w-xl">
-                  Log2Weekly helps you capture thoughts effortlessly and turns them into structured insights.
+                  Log2Weekly 助您轻松捕捉灵感，并将其转化为结构化的洞察。
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-400 mb-4">
                   <div className="flex items-center gap-2">
                     <span className="bg-slate-800 px-1.5 py-0.5 rounded text-white font-mono border border-slate-700">Cmd+Enter</span>
-                    <span>Quick Submit</span>
+                    <span>快速提交</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="bg-slate-800 px-1.5 py-0.5 rounded text-white font-mono border border-slate-700">- [ ] Task</span>
-                    <span>Create To-Do</span>
+                    <span className="bg-slate-800 px-1.5 py-0.5 rounded text-white font-mono border border-slate-700">- [ ] 任务</span>
+                    <span>创建待办</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="material-icons text-[14px] text-amber-500">inventory_2</span>
-                    <span>Inbox auto-aggregates daily</span>
+                    <span>每日 18:00 自动聚合</span>
                   </div>
                 </div>
               </div>
@@ -219,11 +250,37 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* 主看板 */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="material-icons text-primary">auto_awesome</span>
-              {searchQuery ? `搜索结果 (${mainLogs.length})` : "每日洞察 & 已聚合日报"}
-            </h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <span className="material-icons text-primary">auto_awesome</span>
+                {searchQuery ? `搜索结果 (${mainLogs.length})` : "汇总看板"}
+              </h2>
+
+              {!searchQuery && (
+                <div className="flex bg-slate-900/40 p-1 rounded-xl border border-white/5">
+                  <button
+                    onClick={() => setTimeView('day')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${timeView === 'day' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    今日
+                  </button>
+                  <button
+                    onClick={() => setTimeView('week')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${timeView === 'week' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    本周
+                  </button>
+                  <button
+                    onClick={() => setTimeView('month')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${timeView === 'month' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    本月
+                  </button>
+                </div>
+              )}
+            </div>
+
             {inboxLogs.length > 0 && (
               <button
                 onClick={handleManualAggregate}
@@ -257,15 +314,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         </section>
       </div>
 
-      <aside className="lg:col-span-4 space-y-6">
+      <aside className={`lg:col-span-4 space-y-6 ${mobileTab !== 'inbox' ? 'hidden lg:block' : 'block'}`}>
         {/* 收纳盒 (Inbox) */}
         <div className="bg-surface-dark rounded-xl border border-slate-800 p-5 shadow-sm max-h-[500px] flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 cursor-pointer hover:text-primary transition-colors" onClick={onViewInbox}>
               <span className="material-icons text-amber-500 text-sm">inventory_2</span>
               收纳盒 (Inbox)
             </h3>
-            <span className="bg-amber-500/20 text-amber-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
+            <button className="text-[10px] text-slate-500 font-bold hover:text-white" onClick={onViewInbox}>
+              查看全部
+            </button>
+            <span className="bg-amber-500/20 text-amber-500 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">
               {inboxLogs.length}
             </span>
           </div>
@@ -279,7 +339,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 <div key={log.id} className="p-3 bg-slate-900/60 rounded-lg border border-slate-800/50 group hover:border-slate-700 transition-all">
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-[10px] text-slate-500 font-bold">
-                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {(() => {
+                        const date = new Date(log.timestamp);
+                        const now = new Date();
+                        const isToday = date.toDateString() === now.toDateString();
+                        return isToday
+                          ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : `${date.getMonth() + 1}-${date.getDate().toString().padStart(2, '0')} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                      })()}
                     </span>
                     <button onClick={() => onDeleteLog(log.id)} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-danger">
                       <span className="material-icons text-[14px]">delete</span>
@@ -295,27 +362,67 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
+        {/* 已归档便捷入口 */}
+        <button
+          onClick={onViewArchive}
+          className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-xl p-4 flex items-center justify-between group hover:bg-slate-800 transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-primary/20 group-hover:text-primary transition-all">
+              <span className="material-icons">inventory_2</span>
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-bold text-white">已归档空间</p>
+              <p className="text-[10px] text-slate-500">回顾已处理的原始碎片</p>
+            </div>
+          </div>
+          <span className="material-icons text-slate-600 group-hover:text-primary transition-all">chevron_right</span>
+        </button>
+
         {/* 数据进度 */}
         <div className="bg-surface-dark rounded-xl border border-slate-800 p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-white mb-4">Weekly Progress</h3>
+          <h3 className="text-sm font-bold text-white mb-4">本周进度</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-background-dark border border-slate-800 text-center">
               <p className="text-2xl font-bold text-white">{stats.completed}</p>
-              <p className="text-[10px] text-slate-500 uppercase font-bold mt-1">Done</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold mt-1">已完成</p>
             </div>
             <div className="p-4 rounded-xl bg-background-dark border border-slate-800 text-center">
               <p className="text-2xl font-bold text-primary">{stats.completionRate}%</p>
-              <p className="text-[10px] text-slate-500 uppercase font-bold mt-1">Rate</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold mt-1">完成率</p>
             </div>
           </div>
         </div>
 
-        {/* Activity Heatmap */}
-        <ActivityHeatmap logs={logs} />
+        {/* Multi-dimension Visualization */}
+        <div className="space-y-4">
+          <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setVizMode('heatmap')}
+              className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${vizMode === 'heatmap' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <span className="material-icons text-[14px]">calendar_view_month</span>
+              活跃热力图
+            </button>
+            <button
+              onClick={() => setVizMode('gantt')}
+              className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${vizMode === 'gantt' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <span className="material-icons text-[14px]">reorder</span>
+              时间轴
+            </button>
+          </div>
+
+          {vizMode === 'heatmap' ? (
+            <ActivityHeatmap logs={logs} />
+          ) : (
+            <GanttView logs={logs} />
+          )}
+        </div>
 
         {/* Top Contexts */}
         <div className="bg-surface-dark rounded-xl border border-slate-800 p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-white mb-4">Top Contexts</h3>
+          <h3 className="text-sm font-bold text-white mb-4">专注领域</h3>
           <div className="space-y-3">
             {useMemo(() => {
               const tagCounts: Record<string, number> = {};
@@ -333,13 +440,41 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                   <span className={`w-2 h-2 rounded-full ${['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-green-500'][index % 5]}`}></span>
                   #{tag}
                 </span>
-                <span className="text-slate-500 font-mono group-hover:text-white transition-colors">{count} logs</span>
+                <span className="text-slate-500 font-mono group-hover:text-white transition-colors">{count} 条记录</span>
               </div>
             ))}
-            {logs.length === 0 && <p className="text-slate-600 italic text-xs">No tags yet. Add #tags to your logs!</p>}
+            {logs.length === 0 && <p className="text-slate-600 italic text-xs">暂无标签。在日志中使用 #打标签 ！</p>}
           </div>
         </div>
       </aside>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 lg:hidden px-6 pb-8 pt-4 bg-slate-950/80 backdrop-blur-2xl border-t border-white/5 z-50">
+        <div className="flex items-center justify-around max-w-md mx-auto">
+          <button
+            onClick={() => setMobileTab('home')}
+            className={`flex flex-col items-center gap-1 transition-all ${mobileTab === 'home' ? 'text-primary scale-110' : 'text-slate-500'}`}
+          >
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${mobileTab === 'home' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons">home</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">控制台</span>
+          </button>
+
+          <button
+            onClick={() => setMobileTab('inbox')}
+            className={`flex flex-col items-center gap-1 transition-all ${mobileTab === 'inbox' ? 'text-primary scale-110' : 'text-slate-500'}`}
+          >
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center relative transition-all ${mobileTab === 'inbox' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons">inventory_2</span>
+              {inboxLogs.length > 0 && (
+                <span className="absolute top-3 right-3 w-2 h-2 bg-amber-500 rounded-full border-2 border-slate-950"></span>
+              )}
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">收纳盒 ({inboxLogs.length})</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -2,84 +2,113 @@ from google import genai
 from google.genai import types
 from openai import OpenAI
 import os
-from typing import Dict, Any, Optional
+import json
+from typing import Dict, Any, Optional, List
+
+class ModelProvider:
+    async def test_connection(self, api_key: str, model_name: str) -> Dict[str, Any]:
+        raise NotImplementedError
+        
+    async def generate_response(self, api_key: str, model_name: str, prompt: str, is_json: bool = False) -> Optional[str]:
+        raise NotImplementedError
+
+class GeminiProvider(ModelProvider):
+    async def test_connection(self, api_key: str, model_name: str) -> Dict[str, Any]:
+        try:
+            client = genai.Client(api_key=api_key.strip())
+            target_model = MODEL_MAPPING.get(model_name, model_name).replace("models/", "")
+            response = client.models.generate_content(
+                model=target_model,
+                contents="ping",
+                config=types.GenerateContentConfig(max_output_tokens=10)
+            )
+            if response.text:
+                return {"success": True, "message": f"Gemini ({target_model}) 连接成功！"}
+            return {"success": False, "message": "模型返回空响应"}
+        except Exception as e:
+            return {"success": False, "message": f"Gemini 连接失败: {str(e)}"}
+
+    async def generate_response(self, api_key: str, model_name: str, prompt: str, is_json: bool = False) -> Optional[str]:
+        try:
+            client = genai.Client(api_key=api_key.strip())
+            target_model = MODEL_MAPPING.get(model_name, model_name).replace("models/", "")
+            response = client.models.generate_content(
+                model=target_model,
+                contents=prompt
+            )
+            return response.text
+        except Exception as e:
+            print(f"Gemini error: {e}")
+            return None
+
+class OpenAICompatibleProvider(ModelProvider):
+    def __init__(self, base_url: str):
+        self.base_url = base_url
+
+    async def test_connection(self, api_key: str, model_name: str) -> Dict[str, Any]:
+        try:
+            client = OpenAI(api_key=api_key.strip(), base_url=self.base_url)
+            target_model = MODEL_MAPPING.get(model_name, model_name)
+            response = client.chat.completions.create(
+                model=target_model,
+                messages=[{"role": "user", "content": "ping"}],
+            )
+            if response.choices[0].message.content:
+                return {"success": True, "message": "连接成功！"}
+            return {"success": False, "message": "模型返回空响应"}
+        except Exception as e:
+            return {"success": False, "message": f"连接失败: {str(e)}"}
+
+    async def generate_response(self, api_key: str, model_name: str, prompt: str, is_json: bool = False) -> Optional[str]:
+        try:
+            client = OpenAI(api_key=api_key.strip(), base_url=self.base_url)
+            target_model = MODEL_MAPPING.get(model_name, model_name)
+            kwargs = {
+                "model": target_model,
+                "messages": [{"role": "user", "content": prompt}]
+            }
+            if is_json:
+                kwargs["response_format"] = {"type": "json_object"}
+                
+            response = client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Provider error: {e}")
+            return None
+
+PROVIDERS = {
+    "gemini": GeminiProvider(),
+    "kimi": OpenAICompatibleProvider("https://api.moonshot.cn/v1"),
+    "glm": OpenAICompatibleProvider("https://open.bigmodel.cn/api/paas/v4/"),
+    "qwen": OpenAICompatibleProvider("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+}
+
+MODEL_MAPPING = {
+    # Gemini 默认值
+    "gemini-1.5-flash": "gemini-1.5-flash",
+    "gemini-1.5-pro": "gemini-1.5-pro",
+    "gemini-2.0-flash": "gemini-2.0-flash-exp",
+    # Kimi 映射
+    "moonshot-v1-8k": "moonshot-v1-8k",
+    "moonshot-v1-32k": "moonshot-v1-32k",
+    "moonshot-v2-128k": "moonshot-v2-128k",
+}
+
+def get_provider(model_type: str) -> ModelProvider:
+    return PROVIDERS.get(model_type, PROVIDERS["gemini"])
 
 async def test_gemini_connection(api_key: str, model_name: str = "gemini-1.5-flash") -> Dict[str, Any]:
-    """测试 Gemini 联通性 (使用最新 google-genai SDK)"""
-    client = None
-    try:
-        api_key = api_key.strip()
-        # 日志记录的关键片段以确认 Key 是否更新
-        key_log = f"{api_key[:6]}...{api_key[-4:]}" if len(api_key) > 10 else "invalid"
-        print(f"DEBUG: Testing Gemini with key {key_log} and model {model_name} (google-genai SDK)")
-        
-        client = genai.Client(api_key=api_key)
-        
-        # 官方建议模型名不带 models/
-        clean_model_name = model_name.replace("models/", "")
-        
-        # 尝试生成极简内容测试配额和有效性
-        response = client.models.generate_content(
-            model=clean_model_name,
-            contents="ping",
-            config=types.GenerateContentConfig(
-                max_output_tokens=10
-            )
-        )
-        
-        if response.text:
-            return {"success": True, "message": f"Gemini ({clean_model_name}) 连接成功！"}
-        return {"success": False, "message": "模型返回空响应"}
-    except Exception as e:
-        msg = str(e)
-        if "429" in msg:
-            return {
-                "success": False, 
-                "message": f"Gemini 配额上限 (429): 服务器返回配额已满。这通常是因为该 Key 所属的项目已耗尽免费额度，或者频繁调用。请尝试检查其它 Key 或等待 1 分钟再试。"
-            }
-        elif "404" in msg:
-            try:
-                # 尝试列出可用模型以调试
-                print("DEBUG: 404 Error encountered. Listing available models...")
-                paged_list = client.models.list(config={"page_size": 50})
-                available_models = [m.name for m in paged_list]
-                print(f"DEBUG: Available models: {available_models}")
-                return {"success": False, "message": f"模型未找到 (404): 当前 Key 可用模型: {', '.join([m.split('/')[-1] for m in available_models[:5]])}... 请查看后端日志获取完整列表。"}
-            except Exception as list_err:
-                print(f"DEBUG: Failed to list models: {list_err}")
-                
-            return {"success": False, "message": f"模型未找到 (404): 未找到名为 {model_name} 的模型。请尝试使用完整名称如 gemini-1.5-flash-001"}
-        elif "400" in msg:
-            return {"success": False, "message": f"参数错误 (400): 请检查模型名 {model_name} 是否正确。建议尝试: gemini-1.5-flash"}
-        return {"success": False, "message": f"Gemini 连接失败: {msg}"}
+    return await get_provider("gemini").test_connection(api_key, model_name)
 
 async def test_kimi_connection(api_key: str, model_name: str = "kimi-k2.5") -> Dict[str, Any]:
-    """测试 Kimi (Moonshot) 联通性"""
-    try:
-        api_key = api_key.strip()
-        client = OpenAI(
-            api_key=api_key,
-            base_url="https://api.moonshot.cn/v1",
-        )
-        response = client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "user", "content": "ping"}],
-        )
-        if response.choices[0].message.content:
-            return {"success": True, "message": "Kimi 连接成功！"}
-        return {"success": False, "message": "模型返回空响应"}
-    except Exception as e:
-        return {"success": False, "message": f"Kimi 连接失败: {str(e)}"}
+    return await get_provider("kimi").test_connection(api_key, model_name)
 
-async def generate_summary(
-    api_key: str, 
-    model_type: str, 
-    model_name: str, 
-    log_content: str
-) -> Optional[str]:
-    """生成周报摘要"""
+async def test_glm_connection(api_key: str, model_name: str = "glm-4") -> Dict[str, Any]:
+    return await get_provider("glm").test_connection(api_key, model_name)
+
+async def generate_summary(api_key: str, model_type: str, model_name: str, log_content: str) -> Optional[str]:
     prompt = f"""你是一位专业的高级生产力顾问。请根据以下日志记录生成本周周报总结。
-要求：1. 必须使用中文。 2. 严格 JSON 输出。 3. 摘要需包含对成就的认可。
+要求：1. 必须使用中文。 2. 严格 JSON 输出。 3. 摘要需包含对成就的认可。 4. 请根据日志内容，智能分析并预测下周的工作建议 (nextWeekSuggestions)。
 
 日志内容：
 {log_content}
@@ -89,80 +118,18 @@ async def generate_summary(
   "executiveSummary": "总结内容...",
   "focusAreas": [{{ "name": "领域", "percentage": 80 }}],
   "pulseStats": {{ "completed": 5, "completedChange": 1, "deepWorkHours": 10, "deepWorkAvg": 2 }},
-  "highlights": [{{ "title": "亮点", "description": "描述", "icon": "emoji", "category": "分类", "timestamp": "时间" }}]
+  "highlights": [{{ "title": "亮点", "description": "描述", "icon": "emoji", "category": "分类", "timestamp": "时间" }}],
+  "nextWeekSuggestions": ["建议1: ...", "建议2: ..."]
 }}
 """
-    try:
-        api_key = api_key.strip()
-        if model_type == "gemini":
-            client = genai.Client(api_key=api_key)
-            model_name = model_name.replace("models/", "")
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt
-            )
-            return response.text
-        elif model_type == "kimi":
-            client = OpenAI(
-                api_key=api_key,
-                base_url="https://api.moonshot.cn/v1",
-            )
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
-            return response.choices[0].message.content
-    except Exception as e:
-        print(f"Generation error: {e}")
-        return None
-    return None
+    provider = get_provider(model_type)
+    return await provider.generate_response(api_key, model_name, prompt, is_json=True)
 
-async def aggregate_daily_logs(
-    api_key: str,
-    model_type: str,
-    model_name: str,
-    logs: list[str]
-) -> Optional[str]:
-    """将碎片化的记录聚合为结构化的日报"""
-    if not logs:
-        return None
-        
+async def aggregate_daily_logs(api_key: str, model_type: str, model_name: str, logs: List[str]) -> Optional[str]:
+    if not logs: return None
     log_text = "\n".join([f"- {l}" for l in logs])
-    prompt = f"""你是一位极致高效的生产力教练。以下是用户今天的碎片化记录和感悟：
+    prompt = f"""你是一位极致高效的生产力教练。以下是用户今天的碎片化记录：
 {log_text}
-
-请将这些记录整理成一份有深度的“每日洞察 (Daily Insight)”。
-要求：
-1. 风格简洁、专业且富有启发性。
-2. 结构清晰，包含：
-   - 📌 核心事项总结
-   - 💡 闪念与感悟提炼
-   - 🛠️ 下一步行动建议
-3. 使用中文。
-4. 长度适中，避免冗余。
-"""
-    try:
-        api_key = api_key.strip()
-        if model_type == "gemini":
-            client = genai.Client(api_key=api_key)
-            model_name = model_name.replace("models/", "")
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt
-            )
-            return response.text
-        elif model_type == "kimi":
-            client = OpenAI(
-                api_key=api_key,
-                base_url="https://api.moonshot.cn/v1",
-            )
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            return response.choices[0].message.content
-    except Exception as e:
-        print(f"Aggregation error: {e}")
-        return None
-    return None
+请整理成 Daily Insight，包含核心总结、闪念感悟和行动建议。中文输出。"""
+    provider = get_provider(model_type)
+    return await provider.generate_response(api_key, model_name, prompt)

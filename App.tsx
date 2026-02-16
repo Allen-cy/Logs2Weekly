@@ -12,6 +12,11 @@ import RegisterView from './components/RegisterView';
 import LoginView from './components/LoginView';
 import { API_BASE_URL } from './aiService';
 import UserManualModal from './components/UserManualModal';
+import InsightsView from './components/InsightsView';
+import ReportHistoryView from './components/ReportHistoryView';
+import NewFeaturesModal from './components/NewFeaturesModal';
+import InboxView from './components/InboxView';
+import ArchiveView from './components/ArchiveView';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('login');
@@ -21,13 +26,21 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [config, setConfig] = useState<AppConfig>({
     provider: 'gemini',
-    modelName: 'gemini-2.5-flash',
+    modelName: 'gemini-1.5-flash',
     apiKey: '',
     apiKeyTested: false,
   });
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [showNewFeatures, setShowNewFeatures] = useState(false);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-  // 0. 初始化：检查本地存储的用户信息
+  const handleLoginSuccess = (loggedInUser: User) => {
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    setUser(loggedInUser);
+    setViewMode('dashboard');
+  };
+
+  // 0. 初始化：仅在挂载时从本地存储恢复用户信息
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -36,6 +49,12 @@ const App: React.FC = () => {
         if (parsedUser && parsedUser.id) {
           setUser(parsedUser);
           setViewMode('dashboard');
+
+          // 检查是否显示新功能弹窗 (V3.0)
+          const hasSeenV3 = localStorage.getItem('hasSeenV3Updates');
+          if (!hasSeenV3) {
+            setShowNewFeatures(true);
+          }
         }
       } catch (e) {
         console.error("Failed to parse stored user", e);
@@ -43,6 +62,28 @@ const App: React.FC = () => {
       }
     }
   }, []);
+
+  // 1. OAuth 回调检测：仅在存在 code 且未登录时触发
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (code && !user) {
+      const handleOAuthCallback = async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/github/callback?code=${code}`);
+          const data = await response.json();
+          if (response.ok && data.user) {
+            handleLoginSuccess(data.user);
+            // 清理 URL 参数,防止刷新重复触发
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (err) {
+          console.error('OAuth callback failed:', err);
+        }
+      };
+      handleOAuthCallback();
+    }
+  }, [user]);
 
   // 1. 登录成功后加载用户配置
   useEffect(() => {
@@ -55,8 +96,10 @@ const App: React.FC = () => {
           setConfig({
             provider: data.config.provider,
             modelName: data.config.model_name,
-            apiKey: data.config.api_key_encrypted, // 实际上是解密后的，DB 字段名暂未改
-            apiKeyTested: true
+            apiKey: data.config.api_key_encrypted || '',
+            apiKeyTested: !!data.config.api_key_encrypted,
+            inboxRetentionDays: data.config.inbox_retention_days || 15,
+            archiveRetentionDays: data.config.archive_retention_days || 15
           });
         }
       } catch (err) {
@@ -77,7 +120,8 @@ const App: React.FC = () => {
           body: JSON.stringify({
             provider: config.provider,
             model_name: config.modelName,
-            api_key: config.apiKey
+            api_key: config.apiKey,
+            inbox_retention_days: config.inboxRetentionDays || 15
           }),
         });
       } catch (err) {
@@ -91,16 +135,17 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       if (!user) return;
+      setIsLoadingLogs(true);
       try {
         const data = await fetchLogs(user.id);
-        if (data && data.length > 0) {
+        if (data) {
           setLogs(data);
-        } else {
-          setLogs(INITIAL_LOGS);
         }
       } catch (err) {
         console.error("Failed to fetch logs", err);
-        setLogs(INITIAL_LOGS);
+        setLogs([]);
+      } finally {
+        setIsLoadingLogs(false);
       }
     };
     loadData();
@@ -152,6 +197,14 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleUpdateLogStatus = (id: string, status: LogStatus) => {
+    setLogs(prev => prev.map(log => log.id === id ? { ...log, status } : log));
+  };
+
+  const handleEditLog = (id: string, content: string) => {
+    setLogs(prev => prev.map(log => log.id === id ? { ...log, content } : log));
+  };
+
   const handleRegenerate = async () => {
     if (!config.apiKeyTested) {
       setViewMode('setup');
@@ -174,11 +227,13 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    sessionStorage.clear(); // 清理可能的会话缓存
     setUser(null);
     setLogs([]);
+    setSummary(INITIAL_SUMMARY);
     setConfig({
       provider: 'gemini',
-      modelName: 'gemini-2.5-flash',
+      modelName: 'gemini-1.5-flash',
       apiKey: '',
       apiKeyTested: false,
     });
@@ -210,12 +265,22 @@ const App: React.FC = () => {
 
       <UserManualModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
+      {showNewFeatures && (
+        <NewFeaturesModal
+          onClose={() => {
+            setShowNewFeatures(false);
+            localStorage.setItem('hasSeenV3Updates', 'true');
+          }}
+        />
+      )}
+
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {viewMode === 'register' && (
           <RegisterView
             onRegisterSuccess={(u) => {
+              localStorage.setItem('user', JSON.stringify(u));
               setUser(u);
-              setViewMode('login');
+              setViewMode('dashboard');
             }}
             onSwitchToLogin={() => setViewMode('login')}
           />
@@ -270,10 +335,39 @@ const App: React.FC = () => {
             onRevertToNote={(id) => setLogs(prev => prev.map(l => l.id === id ? { ...l, type: LogType.NOTE, status: undefined } : l))}
             onRefresh={handleRefreshLogs}
             availableTags={['工作', '学习', '健康']}
+            onViewInbox={() => setViewMode('inbox')}
+            onViewArchive={() => setViewMode('archive')}
+            retentionDays={config.archiveRetentionDays}
           />
         )}
 
-        {viewMode === 'review' && <ReviewView summary={summary} />}
+        {viewMode === 'inbox' && (
+          <InboxView
+            logs={logs}
+            onDeleteLog={(id) => setLogs(prev => prev.filter(l => l.id !== id))}
+            onUpdateLogStatus={handleUpdateLogStatus}
+            onEditLog={handleEditLog}
+            onBack={() => setViewMode('dashboard')}
+            retentionDays={config.inboxRetentionDays || 15}
+          />
+        )}
+
+        {viewMode === 'archive' && (
+          <ArchiveView
+            logs={logs}
+            onDeleteLog={(id) => setLogs(prev => prev.filter(l => l.id !== id))}
+            onUpdateLogStatus={handleUpdateLogStatus}
+            onEditLog={handleEditLog}
+            onBack={() => setViewMode('dashboard')}
+            retentionDays={config.archiveRetentionDays || 15}
+          />
+        )}
+
+        {viewMode === 'review' && <ReviewView summary={summary} user={user} />}
+
+        {viewMode === 'insights' && <InsightsView logs={logs} />}
+
+        {viewMode === 'history' && user && <ReportHistoryView user={user} />}
       </main>
 
       <footer className="mt-auto py-6 border-t border-slate-800 bg-surface-dark/50">

@@ -91,7 +91,14 @@ const LogCard: React.FC<LogCardProps> = ({
 
             <div className="flex items-center gap-3 flex-shrink-0">
               <span className="text-[10px] text-slate-500 font-bold tabular-nums">
-                {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {(() => {
+                  const date = new Date(log.timestamp);
+                  const now = new Date();
+                  const isToday = date.toDateString() === now.toDateString();
+                  return isToday
+                    ? `今天 ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : `${date.getMonth() + 1}-${date.getDate().toString().padStart(2, '0')} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                })()}
               </span>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -132,7 +139,7 @@ const LogCard: React.FC<LogCardProps> = ({
                   <button
                     onClick={onRevertToNote}
                     className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold border border-slate-700 hover:text-danger transition-all flex items-center gap-1"
-                    title="Undo conversion"
+                    title="撤销任务转换"
                   >
                     <span className="material-icons text-[12px]">undo</span> 撤销转任务
                   </button>

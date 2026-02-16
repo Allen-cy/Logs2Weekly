@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body, Depends, Query
+from fastapi import FastAPI, HTTPException, Body, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
@@ -12,14 +12,17 @@ if current_dir not in sys.path:
 
 try:
     from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+    from services.smtp_service import send_verification_email
     from database import get_supabase
 except ImportError:
     try:
         from api.services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+        from api.services.smtp_service import send_verification_email
         from api.database import get_supabase
     except ImportError:
         # 最后的保底尝试：相对导入
         from .services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+        from .services.smtp_service import send_verification_email
         from .database import get_supabase
 import json
 import bcrypt
@@ -87,6 +90,37 @@ async def perform_user_aggregation(user_id: int):
         print(f"Error in aggregation for user {user_id}: {e}")
         return None
 
+async def perform_inbox_cleanup(user_id: int):
+    """
+    清理超期的已处理记录
+    """
+    client = get_supabase()
+    if not client: return
+    
+    try:
+        # 1. 获取用户配置的归档留存天数 (默认 15，最高支持 365)
+        config_resp = client.table("user_configs").select("archive_retention_days").eq("user_id", user_id).execute()
+        retention_days = 15
+        if config_resp.data and config_resp.data[0].get("archive_retention_days"):
+            retention_days = config_resp.data[0]["archive_retention_days"]
+            
+        # 2. 计算截止日期
+        cutoff_date = (datetime.now() - timedelta(days=retention_days)).isoformat()
+        
+        # 3. 执行归档删除：仅针对已处理的【普通碎记录】
+        # 严格保护：type != 'summary' (永久日报) 和 is_pinned (置顶记录)
+        client.table("logs").delete() \
+            .eq("user_id", user_id) \
+            .eq("is_processed", True) \
+            .neq("type", "summary") \
+            .eq("is_pinned", False) \
+            .lt("timestamp", cutoff_date) \
+            .execute()
+        
+        print(f"🧹 已为用户 {user_id} 完成归档清理 (动态留存: {retention_days}天，已保护永久日报)")
+    except Exception as e:
+        print(f"Cleanup error for user {user_id}: {e}")
+
 async def daily_aggregation_task():
     while True:
         now = datetime.now()
@@ -104,7 +138,11 @@ async def daily_aggregation_task():
             
             users_resp = client.table("user_configs").select("user_id").execute()
             for row in users_resp.data:
-                await perform_user_aggregation(row["user_id"])
+                u_id = row["user_id"]
+                # 1. 执行聚合
+                await perform_user_aggregation(u_id)
+                # 2. 执行收纳盒清理
+                await perform_inbox_cleanup(u_id)
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -155,6 +193,7 @@ class UserConfigUpdate(BaseModel):
     provider: str
     model_name: str
     api_key: str
+    inbox_retention_days: Optional[int] = 15
 
 class LogEntry(BaseModel):
     content: str
@@ -175,6 +214,13 @@ class SummaryRequest(BaseModel):
     model_name: str
     api_key: str
     logs: List[Any]
+
+class ReportEntry(BaseModel):
+    user_id: int
+    title: str
+    content: Dict[str, Any]
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 # --- 工具函数 ---
 
@@ -211,7 +257,7 @@ async def health_check():
 
 @app.post("/register")
 @app.post("/api/register")
-async def register(user: UserRegister):
+async def register(user: UserRegister, request: Request):
     client = get_supabase()
     if not client:
         raise HTTPException(status_code=500, detail="数据库连接错误")
@@ -243,12 +289,49 @@ async def register(user: UserRegister):
     
     try:
         response = client.table("users").insert(new_user).execute()
-        # 模拟发送验证邮件
-        print(f"📧 [模拟邮件发送] 发送到: {user.email}, 内容: 欢迎注册 AI Productivity Hub! 您的账号已创建。")
-        return {"success": True, "user": {"id": response.data[0]["id"], "username": user.username, "phone": user.phone, "email": user.email}}
+        user_id = response.data[0]["id"]
+        
+        # 验证码逻辑
+        verify_code = str(uuid.uuid4())
+        client.table("verification_codes").insert({
+            "user_id": user_id,
+            "email": user.email,
+            "code": verify_code,
+            "type": "register",
+            "expires_at": (datetime.now() + timedelta(hours=24)).isoformat()
+        }).execute()
+
+        # 异步发送验证邮件
+        base_url = get_base_url(request)
+        asyncio.create_task(send_verification_email(user.email, verify_code, base_url))
+        
+        return {"success": True, "user": {"id": user_id, "username": user.username, "phone": user.phone, "email": user.email}}
     except Exception as e:
         print(f"Register error: {e}")
         raise HTTPException(status_code=500, detail=f"注册失败: {str(e)}")
+
+@app.get("/verify")
+@app.get("/api/verify")
+async def verify_email(code: str):
+    client = get_supabase()
+    # 查找验证码
+    resp = client.table("verification_codes").select("*").eq("code", code).execute()
+    if not resp.data:
+        raise HTTPException(status_code=400, detail="验证链接无效或已过期")
+    
+    verify_data = resp.data[0]
+    user_id = verify_data["user_id"]
+    
+    # 检查过期
+    if datetime.fromisoformat(verify_data["expires_at"].replace("Z", "+00:00")) < datetime.now():
+         raise HTTPException(status_code=400, detail="验证链接已过期")
+    
+    # 更新用户状态
+    client.table("users").update({"email_verified": True}).eq("id", user_id).execute()
+    # 删除使用的验证码
+    client.table("verification_codes").delete().eq("id", verify_data["id"]).execute()
+    
+    return {"success": True, "message": "邮箱验证成功！您现在可以享受完整服务。"}
 
 @app.post("/login")
 @app.post("/api/login")
@@ -283,6 +366,91 @@ async def login(req: UserLogin):
         if isinstance(e, HTTPException): raise e
         print(f"Login error: {e}")
         raise HTTPException(status_code=500, detail="登录失败")
+
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+
+def get_base_url(request):
+    # 动态获取当前请求的 host
+    host = request.headers.get("host", "localhost:8000")
+    proto = "https" if "chunyu2026.dpdns.org" in host or request.headers.get("x-forwarded-proto") == "https" else "http"
+    return f"{proto}://{host}"
+
+@app.get("/auth/github")
+@app.get("/api/auth/github")
+async def github_login(request: Request):
+    if not GITHUB_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="GitHub Login not configured")
+    redirect_uri = f"{get_base_url(request)}/api/auth/github/callback"
+    return {
+        "url": f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={redirect_uri}&scope=user"
+    }
+
+@app.get("/auth/github/callback")
+@app.get("/api/auth/github/callback")
+async def github_callback(code: str, request: Request):
+    redirect_uri = f"{get_base_url(request)}/api/auth/github/callback"
+    async with httpx.AsyncClient() as client:
+        # 1. 换取 Access Token
+        token_resp = await client.post(
+            "https://github.com/login/oauth/access_token",
+            params={
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": redirect_uri
+            },
+            headers={"Accept": "application/json"}
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        
+        if not access_token:
+             raise HTTPException(status_code=400, detail="Failed to get GitHub access token")
+        
+        # 2. 获取用户信息
+        user_resp = await client.get(
+            "https://api.github.com/user",
+            headers={"Authorization": f"token {access_token}"}
+        )
+        gh_user = user_resp.json()
+        gh_id = str(gh_user.get("id"))
+        gh_login = gh_user.get("login")
+        gh_avatar = gh_user.get("avatar_url")
+        gh_email = gh_user.get("email")
+
+        # 3. 数据库操作 (查找或创建用户)
+        sb = get_supabase()
+        # 尝试通过 github_id 查找
+        existing = sb.table("users").select("*").eq("github_id", gh_id).execute()
+        
+        if existing.data:
+            user_data = existing.data[0]
+        else:
+            # 创建新用户
+            new_user = {
+                "username": gh_login,
+                "phone": f"github_{gh_id}", # 默认占位
+                "email": gh_email,
+                "github_id": gh_id,
+                "avatar_url": gh_avatar,
+                "email_verified": True # OAuth 来源默认信任
+            }
+            resp = sb.table("users").insert(new_user).execute()
+            user_data = resp.data[0]
+
+        # 4. 返回用户数据
+        return {
+            "success": True,
+            "user": {
+                "id": user_data["id"],
+                "username": user_data["username"],
+                "phone": user_data["phone"],
+                "email": user_data.get("email"),
+                "avatar_url": user_data.get("avatar_url"),
+                "email_verified": user_data.get("email_verified")
+            }
+        }
 
 @app.put("/api/user/password")
 async def update_password(user_id: int, req: PasswordUpdate):
@@ -329,7 +497,8 @@ async def save_user_config(user_id: int, config: UserConfigUpdate):
         "user_id": user_id,
         "provider": config.provider,
         "model_name": config.model_name,
-        "api_key_encrypted": config.api_key # TODO: Add encryption
+        "api_key_encrypted": config.api_key,
+        "inbox_retention_days": config.inbox_retention_days
     }
     
     try:
@@ -369,6 +538,35 @@ async def manual_aggregate(user_id: int = Query(...)):
         return {"success": False, "message": "今日无待处理的碎片记录，或 AI 聚合失败"}
     return {"success": True, "summary_id": summary_id}
 
+# --- 周报历史归档 ---
+
+@app.get("/api/reports")
+async def get_reports(user_id: int = Query(...)):
+    client = get_supabase()
+    response = client.table("reports").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    return response.data
+
+@app.post("/api/reports")
+async def save_report(report: ReportEntry):
+    client = get_supabase()
+    data = report.dict()
+    try:
+        response = client.table("reports").insert(data).execute()
+        return {"success": True, "id": response.data[0]["id"]}
+    except Exception as e:
+        print(f"Save report error: {e}")
+        raise HTTPException(status_code=500, detail="保存周报快照失败")
+
+@app.delete("/api/reports/{report_id}")
+async def delete_report(report_id: int, user_id: int = Query(...)):
+    client = get_supabase()
+    try:
+        client.table("reports").delete().eq("id", report_id).eq("user_id", user_id).execute()
+        return {"success": True}
+    except Exception as e:
+        print(f"Delete report error: {e}")
+        raise HTTPException(status_code=500, detail="删除周报失败")
+
 # --- AI 服务接口 ---
 
 @app.post("/check-connection")
@@ -377,8 +575,9 @@ async def check_connection(req: ConnectionTest):
     try:
         if req.model_type == "gemini":
             result = await test_gemini_connection(req.api_key, req.model_name)
-        elif req.model_type == "kimi":
-            result = await test_kimi_connection(req.api_key, req.model_name)
+        elif req.model_type in ["kimi", "glm", "qwen"]:
+            provider = get_provider(req.model_type)
+            result = await provider.test_connection(req.api_key, req.model_name)
         else:
             raise HTTPException(status_code=400, detail="不支持的模型类型")
         

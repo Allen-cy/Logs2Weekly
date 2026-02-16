@@ -137,3 +137,57 @@ Vercel 平台无法正确识别并托管我们的 Python FastAPI 后端，导致
 1. **先测后端**：用 `curl` 排除代码逻辑和数据库问题。
 2. **再看控制台**：浏览器控制台的报错是 CORS 和路径拼写错误的照妖镜。
 3. **最后看代码**：硬编码和环境变量配置往往是环境差异问题的罪魁祸首。
+
+---
+
+## 🛡️ 战役四：模型配置与 API Key 验证的交互设计
+
+### 1. 问题的起点 (Backstory)
+>
+> **背景**：“用户有了账号，但如何确保他们填写的 API Key 是真正可用的？如果填错了，等到生成周报时再报错，挫败感太强。”
+
+### 2. 设计目标 (Design Goals)
+
+1. **即时反馈**：在用户保存配置前，必须验证 Key 的有效性。
+2. **引导性强**：针对 Gemini 和 Kimi 不同厂商的特性提供明确指引。
+3. **容错性**：从后端捕获具体的错误码（如 429 配额不足），而不是笼统报错。
+
+### 3.深度分析与实现 (Implementation Details)
+
+#### A. 前端交互策略 (SetupView.tsx)
+
+采用 **Wizard（向导式）** 步骤设计，降低认知负荷：
+
+1. **步骤一：选择引擎**：
+    - 展示 Gemini (Google) 和 Kimi (Moonshot) 选项。
+    - 清晰标注各自特点（如 Gemini 免费额度，Kimi 中文优势）。
+2. **步骤二：验证连接**：
+    - **自动去空**：用户复制 Key 时常带空格，前端/后端需自动 `strip()`。
+    - **强制验证**：只有点击“立即开始验证”并通过后，“开启工作台”按钮才会亮起。
+    - **直达链接**：输入框旁直接提供跳转到 Google AI Studio 或 Moonshot Console 的链接。
+
+#### B. 后端验证逻辑 (models_service.py)
+
+不仅仅是 `ping` 通网络，更是对“服务可用性”的深度检测。
+
+- **Gemini 验证**：
+  - 使用 `google.genai` SDK。
+  - 生成极简内容（如 "ping"）来探测。
+  - **精细化错误处理**：
+    - `429 Quota Exceeded`: 明确告知用户配额已满，建议切换 Key。
+    - `404 Not Found`: 甚至尝试列出当前 Key 可用的模型列表，辅助调试模型名错误（如 `gemini-1.5-flash` vs `models/gemini-1.5-flash`）。
+
+- **Kimi 验证**：
+  - 使用 `openai` 标准 SDK（兼容接口）。
+  - 配置 `base_url="https://api.moonshot.cn/v1"`。
+
+#### C. 状态同步 (App.tsx)
+
+- **云端同步**：验证通过的配置（`apiKeyTested: true`）会自动同步到后端数据库 (`/user/config`)。
+- **无缝漫游**：用户在手机端配置好，回家电脑端打开即用，无需重复输入。
+
+### 4. 经验总结 (Key Takeaways)
+
+1. **Don't Trust User Input**：永远不要假设用户填写的 Key 是对的，必须现场试运行。
+2. **Error Messages Matter**：告诉用户“配额满了”比告诉用户“服务器错误 500”有用一万倍。
+3. **SDK Isolation**：不同厂商使用其官方/推荐的 SDK（如 Gemini 用 `google-genai`，Kimi 用 `openai`），比强行用一套通用的 HTTP 请求更稳定，也能获取更详细的错误堆栈。

@@ -13,15 +13,15 @@ const GreetingSection: React.FC<GreetingSectionProps> = ({ username }) => {
             const now = new Date();
             const hour = now.getHours();
 
-            let greet = 'Good Morning';
-            if (hour >= 12 && hour < 18) greet = 'Good Afternoon';
-            else if (hour >= 18) greet = 'Good Evening';
+            let greet = '早上好';
+            if (hour >= 12 && hour < 18) greet = '下午好';
+            else if (hour >= 18) greet = '晚上好';
 
             setGreeting(greet);
 
-            // Format: Wednesday, Oct 24
-            const options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'short', day: 'numeric' };
-            setDateString(now.toLocaleDateString('en-US', options));
+            // 格式: 2024年10月24日 星期三
+            const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            setDateString(now.toLocaleDateString('zh-CN', options));
         };
 
         updateTime();
@@ -38,13 +38,13 @@ const GreetingSection: React.FC<GreetingSectionProps> = ({ username }) => {
                 </h1>
                 <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium bg-slate-800/50 w-fit px-3 py-1 rounded-full border border-slate-700/50">
                     <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-                    System active • Ready to capture
+                    系统就绪 • 随时记录
                 </div>
             </div>
 
             <div className="text-left md:text-right bg-surface-dark/40 p-3 rounded-xl border border-white/5 backdrop-blur-sm">
                 <div className="text-xl md:text-2xl font-bold text-slate-200 font-mono">{dateString}</div>
-                <div className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 opacity-80">Today's Focus</div>
+                <div className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 opacity-80">今日愿景</div>
             </div>
         </div>
     );

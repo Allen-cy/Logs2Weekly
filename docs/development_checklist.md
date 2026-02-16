@@ -1,63 +1,51 @@
-# AI Productivity Hub - 开发任务完成清单 (Checklist)
+# 开发功能清单 (Development Checklist)
 
-本清单记录了从项目启动到“无压快记与自动聚合”阶段的所有已开发功能与任务项。
+## 1. 基础架构 (Infrastructure)
 
-## 1. 基础架构与数据库
+- [x] 项目初始化 (React + Vite + Tailwind)
+- [x] 后端环境搭建 (FastAPI + Uvicorn)
+- [x] 数据库连接 (Supabase Client)
+- [ ] 环境变量配置 (.env handling)
+- [x] **生产环境部署配置 (Vercel)**
+- [x] Phase 1.1: 智能周报预测 (AI Suggestions)
+- [x] Phase 1.2: 多维度视图 (Heatmap/Gantt)
+- [x] Phase 1.3: 真实邮箱校验 (SMTP Verification)
+- [x] Phase 2.1: GitHub OAuth 集成
+- [x] Phase 2.2: PWA 功能实现
 
-- [x] **后端环境搭建**：FastAPI 环境配置与路由设计。
-- [x] **前端环境搭建**：Vite + React + TailwindCSS (Vanilla CSS 风格化)。
-- [x] **数据库 Schema 设计**：
-  - [x] 用户表 (users)：支持手机号、邮箱、密码加密存储。
-  - [x] 日志表 (logs)：支持类型（任务/笔记）、状态、标签、时间戳。
-  - [x] 配置表 (user_configs)：模型、提供商、API Key 存储。
-- [x] **数据库迁移系统**：SQL 脚本化管理。
+## 2. 鉴权模块 (Authentication)
 
-## 2. 用户账号管理系统
+- [x] 注册页面 (RegisterView)
+- [x] 登录页面 (LoginView)
+- [x] 用户配置管理 (ProfileSettingsView)
+- [x] **登录状态持久化 (LocalStorage)**
 
-- [x] **注册与登录**：
-  - [x] 基于手机号/邮箱的注册流程。
-  - [x] 密码哈希验证与登录会话管理。
-- [x] **安全与验证**：
-  - [x] 接口实现验证码发送（模拟）。
-  - [x] 邮箱绑定与验证逻辑。
-- [x] **设置与配置同步**：
-  - [x] AI 模型偏好设置 UI。
-  - [x] 跨设备登录后配置自动同步。
+## 3. 日志管理 (Log Management)
 
-## 3. 智能日志核心功能
+- [x] 日志列表展示 (DashboardView)
+- [x] 添加日志 (Add Log)
+- [x] 状态切换 (To-Do/Done)
+- [x] **日志搜索 (Search Bar)**
+- [x] **标签统计 (Top Contexts)**
 
-- [x] **全能记录输入框**：支持 Markdown 格式与快捷键。
-- [x] **碎片化记录处理**：
-  - [x] 笔记与任务的快速转化。
-  - [x] 任务状态一键切换与删除。
-- [x] **日志检索增强**：
-  - [x] 关键词模糊搜索。
-  - [x] 标签过滤与日期范围筛选。
-- [x] **AI 集成服务**：
-  - [x] 通过 Gemini API 生成智能周报。
-  - [x] 支持多模型切换。
+## 4. AI 服务 (AI Services)
 
-## 4. 无压快记与每日自动聚合 (深度增强)
+- [x] Gemini API 集成
+- [x] Kimi (Moonshot) API 集成
+- [x] 周报生成逻辑 (Weekly Report Generation)
+- [x] API Key 安全存储 (Basic Encryption)
 
-- [x] **无压快记区域**：极简界面，降低记录心理门槛。
-- [x] **收纳盒 (Inbox) 模式**：
-  - [x] 碎片记录自动隔离进入收纳盒。
-  - [x] 状态追踪 (`is_processed`) 确保内容不重复。
-- [x] **18:00 定时执行任务**：
-  - [x] 后端逻辑实现每日定时执行。
-  - [x] AI 聚合算法优化：碎纸片 -> 结构化日报。
-- [x] **日报溯源与展示**：看板中展示聚合日报及其关联原始数据。
+## 5. UI/UX 体验
 
-## 5. 项目工程化与交付
+- [x] **动态头部 (Dynamic Greeting)**
+- [x] **活跃度热力图 (Activity Heatmap)**
+- [x] **用户指南弹窗 (User Manual Modal)**
+- [x] 暗黑模式适配 (Dark Mode)
+- [x] 移动端响应式 (Responsive Design)
 
-- [x] **版本控制**：Git 流程管理，托管至 GitHub。
-- [x] **自动化验证**：端到端用户流程测试。
-- [x] **文档体系**：
-  - [x] 产品需求文档 (PRD)。
-  - [x] 用户操作手册 (Manual)。
-  - [x] 对话总结与技术路线记录 (Conversation Summary)。
-  - [x] 实时任务追踪进度表 (`task.md`)。
-  - [x] 实施演练说明 (Walkthrough)。
+## 6. 文档与规范
 
----
-*最后更新：2026-02-13*
+- [x] 用户手册 (User Manual)
+- [x] 技术路线图 (Roadmap)
+- [x] 项目总结报告 (Phase Summary)
+- [x] **全景交互历史记录 (Interaction History)**

@@ -7,6 +7,8 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS github_id TEXT UNIQUE;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 -- 2. User configurations for persistence (To remember model settings)
 CREATE TABLE IF NOT EXISTS public.user_configs (

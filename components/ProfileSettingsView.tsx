@@ -23,6 +23,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [email, setEmail] = useState(user.email || '');
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [retentionDays, setRetentionDays] = useState(config.archiveRetentionDays || 15);
     const [isUpdating, setIsUpdating] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -112,19 +113,19 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                         </button>
                     </div>
 
-                    <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-xl">
+                    <div className="bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-xl">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                            <span className="material-icons text-base text-primary">auto_awesome</span>
-                            当前 AI 配置
+                            <span className="material-icons text-base text-primary">info</span>
+                            账户状态
                         </h3>
                         <div className="space-y-4">
                             <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800">
-                                <p className="text-[10px] font-black text-slate-600 uppercase mb-1">提供商</p>
-                                <p className="text-white text-sm font-bold capitalize">{config.provider}</p>
+                                <p className="text-[10px] font-black text-slate-600 uppercase mb-1">注册时间</p>
+                                <p className="text-white text-sm font-bold">已在云端持久化</p>
                             </div>
                             <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800">
-                                <p className="text-[10px] font-black text-slate-600 uppercase mb-1">模型</p>
-                                <p className="text-white text-sm font-bold">{config.modelName || '未设置'}</p>
+                                <p className="text-[10px] font-black text-slate-600 uppercase mb-1">安全等级</p>
+                                <p className="text-success text-sm font-bold">高</p>
                             </div>
                         </div>
                     </div>
@@ -158,7 +159,14 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase ml-4">电子邮箱</label>
+                                    <div className="flex items-center justify-between ml-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase">电子邮箱</label>
+                                        {user.email && (
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${user.email_verified ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                                                {user.email_verified ? '已验证' : '待验证'}
+                                            </span>
+                                        )}
+                                    </div>
                                     <input
                                         type="email"
                                         value={email}
@@ -219,6 +227,71 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                 </button>
                             </div>
                         </form>
+                    </section>
+
+                    {/* App Behavior Settings */}
+                    <section className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-10 shadow-xl">
+                        <h3 className="text-xl font-black text-white mb-8 flex items-center gap-3">
+                            <span className="w-1.5 h-6 bg-primary rounded-full"></span>
+                            功能偏好
+                        </h3>
+                        <div className="space-y-6">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center ml-4">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase">已归档留存时长 ({retentionDays} 天)</label>
+                                    <span className="text-[10px] text-slate-400">聚合后的原始碎片将保留此时长</span>
+                                </div>
+                                <div className="px-4">
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="365"
+                                        value={retentionDays}
+                                        onChange={(e) => setRetentionDays(parseInt(e.target.value))}
+                                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                                    />
+                                    <div className="flex justify-between text-[9px] text-slate-600 font-bold mt-2 uppercase tracking-tighter">
+                                        <span>1 天</span>
+                                        <span>15 天 (默认)</span>
+                                        <span>90 天</span>
+                                        <span>180 天</span>
+                                        <span>365 天</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4">
+                                <button
+                                    onClick={async () => {
+                                        setIsUpdating(true);
+                                        try {
+                                            const newConfig = { ...config, archiveRetentionDays: retentionDays };
+                                            const response = await fetch(`${API_BASE_URL}/user/config?user_id=${user.id}`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    provider: newConfig.provider,
+                                                    model_name: newConfig.modelName,
+                                                    api_key: newConfig.apiKey,
+                                                    archive_retention_days: retentionDays
+                                                }),
+                                            });
+                                            if (response.ok) {
+                                                onUpdateConfig(newConfig);
+                                                setMessage({ type: 'success', text: '偏好设置已保存' });
+                                            }
+                                        } catch (err) {
+                                            setMessage({ type: 'error', text: '保存失败' });
+                                        } finally {
+                                            setIsUpdating(false);
+                                        }
+                                    }}
+                                    className="bg-primary/20 text-primary border border-primary/30 px-8 py-4 rounded-2xl font-black text-sm hover:bg-primary/30 active:scale-95 transition-all shadow-xl"
+                                >
+                                    应用偏好设置
+                                </button>
+                            </div>
+                        </div>
                     </section>
                 </div>
             </div>

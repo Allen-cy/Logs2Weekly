@@ -15,7 +15,11 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
   const [testResult, setTestResult] = useState<{ success?: boolean; message?: string }>({});
 
   const handleSelectProvider = (provider: ModelProvider) => {
-    const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash' : 'kimi-k2.5';
+    let defaultModel = 'gemini-2.5-flash';
+    if (provider === 'kimi') defaultModel = 'kimi-k2.5';
+    else if (provider === 'glm') defaultModel = 'glm-4';
+    else if (provider === 'qwen') defaultModel = 'qwen-turbo';
+
     setConfig(prev => ({ ...prev, provider, modelName: defaultModel, apiKeyTested: false }));
     setTestResult({});
     setStep(2);
@@ -38,6 +42,16 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
     setIsTesting(false);
   };
 
+  const getDocUrl = (provider: ModelProvider) => {
+    switch (provider) {
+      case 'gemini': return "https://aistudio.google.com/app/apikey";
+      case 'kimi': return "https://platform.moonshot.cn/console/api-keys";
+      case 'glm': return "https://open.bigmodel.cn/usercenter/apikeys";
+      case 'qwen': return "https://dashscope.console.aliyun.com/apiKey";
+      default: return "#";
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 px-4">
       <div className="bg-surface-dark rounded-[2.5rem] border border-slate-800 p-8 shadow-2xl relative overflow-hidden">
@@ -46,6 +60,13 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
         </div>
 
         <div className="relative z-10">
+          <button
+            onClick={onFinish}
+            className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 hover:text-white flex items-center justify-center transition-all"
+          >
+            <span className="material-icons text-xl">close</span>
+          </button>
+
           <div className="flex items-center gap-4 mb-10">
             <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
               <span className="material-icons text-2xl">
@@ -101,6 +122,32 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
                     深度理解中文语境。为您提供精准的分析与流畅的交互体验。
                   </p>
                 </button>
+
+                <button
+                  onClick={() => handleSelectProvider('glm')}
+                  className="group relative p-6 rounded-3xl border-2 border-slate-800 bg-slate-900/40 text-left transition-all hover:border-orange-500 hover:bg-orange-500/5 active:scale-95"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 mb-5 group-hover:scale-110 transition-transform">
+                    <span className="material-icons text-2xl">auto_fix_high</span>
+                  </div>
+                  <h4 className="font-bold text-lg text-white mb-2">智谱清言 (GLM)</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    国产大模型佼佼者，逻辑推理能力强。适合长文本与复杂总结。
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => handleSelectProvider('qwen')}
+                  className="group relative p-6 rounded-3xl border-2 border-slate-800 bg-slate-900/40 text-left transition-all hover:border-purple-500 hover:bg-purple-500/5 active:scale-95"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-5 group-hover:scale-110 transition-transform">
+                    <span className="material-icons text-2xl">cloud_queue</span>
+                  </div>
+                  <h4 className="font-bold text-lg text-white mb-2">通义千问 (Qwen)</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    高效全能，知识面广。非常适合生产力日志的分类与预测。
+                  </p>
+                </button>
               </div>
             </div>
           )}
@@ -133,14 +180,14 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
                 <div className="relative">
                   <input
                     type="password"
-                    placeholder={`输入您的 ${config.provider === 'gemini' ? 'Gemini' : 'Kimi'} API Key`}
+                    placeholder={`输入您的 ${config.provider.toUpperCase()} API Key`}
                     value={config.apiKey}
                     onChange={(e) => setConfig(prev => ({ ...prev, apiKey: e.target.value, apiKeyTested: false }))}
                     className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-4 px-6 text-white text-sm focus:border-primary focus:outline-none transition-all"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">
                     <a
-                      href={config.provider === 'gemini' ? "https://aistudio.google.com/app/apikey" : "https://platform.moonshot.cn/console/api-keys"}
+                      href={getDocUrl(config.provider)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] text-primary hover:underline flex items-center gap-1 bg-slate-900 pl-2"
@@ -184,14 +231,22 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
                       开启工作台
                     </button>
                   ) : (
-                    <button
-                      onClick={runTest}
-                      disabled={isTesting || !config.apiKey}
-                      className="w-full py-4 rounded-2xl bg-white text-background-dark font-black hover:bg-slate-200 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 disabled:opacity-50"
-                    >
-                      <span className="material-icons text-[20px]">play_circle</span>
-                      立即开始验证
-                    </button>
+                    <>
+                      <button
+                        onClick={runTest}
+                        disabled={isTesting || !config.apiKey}
+                        className="w-full py-4 rounded-2xl bg-white text-background-dark font-black hover:bg-slate-200 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 disabled:opacity-50"
+                      >
+                        <span className="material-icons text-[20px]">play_circle</span>
+                        立即开始验证
+                      </button>
+                      <button
+                        onClick={onFinish}
+                        className="w-full py-3 text-slate-500 hover:text-white text-xs font-bold transition-all"
+                      >
+                        稍后配置，先去主页看看
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

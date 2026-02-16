@@ -41,26 +41,38 @@ const Header: React.FC<HeaderProps> = ({
               onClick={() => setViewMode('dashboard')}
               className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'dashboard' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
             >
-              DASHBOARD
+              控制台
             </button>
             <button
               onClick={() => setViewMode('review')}
               className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'review' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
             >
-              WEEKLY REVIEW
+              生成周报
+            </button>
+            <button
+              onClick={() => setViewMode('insights')}
+              className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'insights' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
+            >
+              数据洞察
+            </button>
+            <button
+              onClick={() => setViewMode('history')}
+              className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'history' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
+            >
+              周报归档
             </button>
             <button
               onClick={() => setViewMode('setup')}
               className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'setup' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
             >
-              SETTINGS
+              助手配置
             </button>
             <button
               onClick={onOpenGuide}
               className="px-6 py-2 rounded-xl text-xs font-black transition-all text-slate-400 hover:text-white flex items-center gap-2"
             >
               <span className="material-icons text-sm">menu_book</span>
-              GUIDE
+              指南
             </button>
           </nav>
 
@@ -77,7 +89,7 @@ const Header: React.FC<HeaderProps> = ({
                 <span className={`material-icons text-sm ${isGenerating ? 'animate-spin' : ''}`}>
                   {isGenerating ? 'sync' : 'auto_awesome'}
                 </span>
-                {isGenerating ? 'GENERATING...' : 'REGENERATE SUMMARY'}
+                {isGenerating ? '正在生成...' : '立即生成周报'}
               </button>
             )}
 
