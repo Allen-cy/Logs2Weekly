@@ -40,15 +40,15 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* 搜索框移至顶部 */}
-          <div className="hidden md:flex flex-1 max-w-md relative group">
-            <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+          {/* 搜索框：移动端自适应 */}
+          <div className="flex-1 max-w-md relative group mx-4 md:mx-0">
+            <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors text-sm">search</span>
             <input
               type="text"
-              placeholder="搜索记录、日报、标签..."
+              placeholder="搜索..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/60 border border-white/5 rounded-full py-2.5 pl-11 pr-4 text-xs text-white focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-inner"
+              className="w-full bg-slate-900/60 border border-white/5 rounded-full py-2 px-10 text-[10px] text-white focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-inner"
             />
           </div>
 

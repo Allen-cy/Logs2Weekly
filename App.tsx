@@ -487,7 +487,62 @@ const App: React.FC = () => {
         {viewMode === 'history' && user && <ReportHistoryView user={user} />}
       </main>
 
-      <footer className="mt-auto py-6 border-t border-slate-800 bg-surface-dark/50">
+      {/* 移动端底部导航 - 全局统一 */}
+      {user && (
+        <nav className="fixed bottom-0 left-0 right-0 lg:hidden px-4 pb-8 pt-2 bg-slate-950/80 backdrop-blur-2xl border-t border-white/5 z-[100] flex justify-around items-center">
+          <button
+            onClick={() => setViewMode('dashboard')}
+            className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'dashboard' ? 'text-primary scale-110' : 'text-slate-500'}`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'dashboard' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-xl">home</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">控制台</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('todos')}
+            className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'todos' ? 'text-primary scale-110' : 'text-slate-500'}`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'todos' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-xl">checklist</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">待办</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('inbox')}
+            className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'inbox' ? 'text-primary scale-110' : 'text-slate-500'}`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'inbox' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-xl">inventory_2</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">碎片</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('review')}
+            className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'review' ? 'text-primary scale-110' : 'text-slate-500'}`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'review' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-xl">auto_awesome</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">周报</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('profile')}
+            className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'profile' ? 'text-primary scale-110' : 'text-slate-500'}`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'profile' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-xl">person</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tighter">我的</span>
+          </button>
+        </nav>
+      )}
+
+      <footer className="mt-auto py-6 pb-28 lg:pb-6 border-t border-slate-800 bg-surface-dark/50">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium">
           <p>© 2025 AI Productivity Hub • Multi-Model Powered</p>
           <div className="flex gap-4">

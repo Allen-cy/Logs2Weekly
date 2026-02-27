@@ -46,7 +46,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   const [isAggregating, setIsAggregating] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [vizMode, setVizMode] = useState<'heatmap' | 'gantt'>('heatmap');
-  const [mobileTab, setMobileTab] = useState<'home' | 'inbox'>('home');
   const [timeView, setTimeView] = useState<'day' | 'week' | 'month'>('day');
 
   useEffect(() => {
@@ -155,7 +154,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-24 lg:pb-0">
-      <div className={`lg:col-span-8 space-y-8 ${mobileTab !== 'home' ? 'hidden lg:block' : 'block'}`}>
+      <div className="lg:col-span-8 space-y-8">
         <GreetingSection username={user?.username || 'User'} />
 
 
@@ -295,7 +294,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         </section>
       </div>
 
-      <aside className={`lg:col-span-4 space-y-6 ${mobileTab !== 'inbox' ? 'hidden lg:block' : 'block'}`}>
+      <aside className="lg:col-span-4 space-y-6">
         {/* 收纳盒 (Inbox) */}
         <div className="bg-surface-dark rounded-xl border border-slate-800 p-5 shadow-sm max-h-[500px] flex flex-col">
           <div className="flex items-center justify-between mb-4">
@@ -429,33 +428,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </aside>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 lg:hidden px-6 pb-8 pt-4 bg-slate-950/80 backdrop-blur-2xl border-t border-white/5 z-50">
-        <div className="flex items-center justify-around max-w-md mx-auto">
-          <button
-            onClick={() => setMobileTab('home')}
-            className={`flex flex-col items-center gap-1 transition-all ${mobileTab === 'home' ? 'text-primary scale-110' : 'text-slate-500'}`}
-          >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${mobileTab === 'home' ? 'bg-primary/20' : ''}`}>
-              <span className="material-icons">home</span>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-tighter">控制台</span>
-          </button>
-
-          <button
-            onClick={() => setMobileTab('inbox')}
-            className={`flex flex-col items-center gap-1 transition-all ${mobileTab === 'inbox' ? 'text-primary scale-110' : 'text-slate-500'}`}
-          >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center relative transition-all ${mobileTab === 'inbox' ? 'bg-primary/20' : ''}`}>
-              <span className="material-icons">inventory_2</span>
-              {inboxLogs.length > 0 && (
-                <span className="absolute top-3 right-3 w-2 h-2 bg-amber-500 rounded-full border-2 border-slate-950"></span>
-              )}
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-tighter">收纳盒 ({inboxLogs.length})</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

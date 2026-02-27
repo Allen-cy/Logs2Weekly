@@ -18,6 +18,7 @@ const TodoView: React.FC<TodoViewProps> = ({
 }) => {
     const [activeList, setActiveList] = useState<TodoList>('all');
     const [newTodoInput, setNewTodoInput] = useState('');
+    const [showSidebar, setShowSidebar] = useState(false); // 移动端侧边栏切换
 
     const filteredTodos = useMemo(() => {
         let result = todos;
@@ -63,83 +64,101 @@ const TodoView: React.FC<TodoViewProps> = ({
         };
     }, [todos]);
 
-    return (
-        <div className="flex bg-black/20 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden min-h-[600px] animate-in fade-in zoom-in-95 duration-500">
-            {/* 侧边栏 */}
-            <aside className="w-72 bg-slate-900/40 border-r border-white/5 p-6 flex flex-col gap-6">
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        onClick={() => setActiveList('today')}
-                        className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'today' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-                    >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'today' ? 'bg-white/20' : 'bg-blue-500/20 text-blue-500'}`}>
-                            <span className="material-icons text-lg">calendar_today</span>
-                        </div>
-                        <span className="text-xl font-black mt-1">{listCounts.today}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">今天</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveList('planned')}
-                        className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'planned' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-                    >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'planned' ? 'bg-white/20' : 'bg-red-500/20 text-red-500'}`}>
-                            <span className="material-icons text-lg">event</span>
-                        </div>
-                        <span className="text-xl font-black mt-1">{listCounts.planned}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">计划</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveList('all')}
-                        className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'all' ? 'bg-slate-700 text-white shadow-lg shadow-black/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-                    >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'all' ? 'bg-white/20' : 'bg-slate-500/20 text-slate-400'}`}>
-                            <span className="material-icons text-lg">all_inbox</span>
-                        </div>
-                        <span className="text-xl font-black mt-1">{listCounts.all}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">全部</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveList('completed')}
-                        className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'completed' ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-                    >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'completed' ? 'bg-white/20' : 'bg-green-500/20 text-green-500'}`}>
-                            <span className="material-icons text-lg">check_circle</span>
-                        </div>
-                        <span className="text-xl font-black mt-1">{listCounts.completed}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">已完成</span>
-                    </button>
-                </div>
-
-                <div className="mt-4">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">我的列表</h3>
-                    <div className="space-y-1">
-                        {['工作', '学习', '健康', '临时待办'].map(name => (
-                            <button
-                                key={name}
-                                onClick={() => setActiveList(name)}
-                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeList === name ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className="material-icons text-lg opacity-70">list</span>
-                                    <span className="text-sm font-bold">{name}</span>
-                                </div>
-                                <span className="text-[10px] opacity-50">{todos.filter(t => t.listName === name && !t.completed).length}</span>
-                            </button>
-                        ))}
+    const SidebarContent = () => (
+        <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
+                <button
+                    onClick={() => { setActiveList('today'); setShowSidebar(false); }}
+                    className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'today' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'today' ? 'bg-white/20' : 'bg-blue-500/20 text-blue-500'}`}>
+                        <span className="material-icons text-lg">calendar_today</span>
                     </div>
+                    <span className="text-xl font-black mt-1">{listCounts.today}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">今天</span>
+                </button>
+
+                <button
+                    onClick={() => { setActiveList('planned'); setShowSidebar(false); }}
+                    className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'planned' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'planned' ? 'bg-white/20' : 'bg-red-500/20 text-red-500'}`}>
+                        <span className="material-icons text-lg">event</span>
+                    </div>
+                    <span className="text-xl font-black mt-1">{listCounts.planned}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">计划</span>
+                </button>
+
+                <button
+                    onClick={() => { setActiveList('all'); setShowSidebar(false); }}
+                    className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'all' ? 'bg-slate-700 text-white shadow-lg shadow-black/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'all' ? 'bg-white/20' : 'bg-slate-500/20 text-slate-400'}`}>
+                        <span className="material-icons text-lg">all_inbox</span>
+                    </div>
+                    <span className="text-xl font-black mt-1">{listCounts.all}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">全部</span>
+                </button>
+
+                <button
+                    onClick={() => { setActiveList('completed'); setShowSidebar(false); }}
+                    className={`p-3 rounded-2xl flex flex-col gap-1 transition-all ${activeList === 'completed' ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeList === 'completed' ? 'bg-white/20' : 'bg-green-500/20 text-green-500'}`}>
+                        <span className="material-icons text-lg">check_circle</span>
+                    </div>
+                    <span className="text-xl font-black mt-1">{listCounts.completed}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">已完成</span>
+                </button>
+            </div>
+
+            <div className="mt-4">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">我的列表</h3>
+                <div className="space-y-1">
+                    {['工作', '学习', '健康', '临时待办'].map(name => (
+                        <button
+                            key={name}
+                            onClick={() => { setActiveList(name); setShowSidebar(false); }}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeList === name ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className="material-icons text-lg opacity-70">list</span>
+                                <span className="text-sm font-bold">{name}</span>
+                            </div>
+                            <span className="text-[10px] opacity-50">{todos.filter(t => t.listName === name && !t.completed).length}</span>
+                        </button>
+                    ))}
                 </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="flex flex-col lg:flex-row bg-black/20 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden min-h-[600px] animate-in fade-in zoom-in-95 duration-500">
+            {/* 桌面端侧边栏 / 移动端弹窗式侧边栏 */}
+            <aside className={`
+                ${showSidebar ? 'fixed inset-0 z-50 bg-slate-950 p-6 flex' : 'hidden'} 
+                lg:relative lg:flex lg:w-72 lg:bg-slate-900/40 lg:border-r lg:border-white/5 lg:p-6 flex-col gap-6
+            `}>
+                <div className="flex items-center justify-between lg:hidden mb-4">
+                    <span className="text-lg font-black text-white">列表</span>
+                    <button onClick={() => setShowSidebar(false)} className="text-slate-400"><span className="material-icons">close</span></button>
+                </div>
+                <SidebarContent />
             </aside>
 
             {/* 主内容区 */}
             <main className="flex-1 bg-surface-dark/40 flex flex-col">
-                <div className="p-8 pb-4 flex items-center justify-between">
-                    <h2 className="text-3xl font-black text-white tracking-tight flex items-center gap-4">
-                        {activeList === 'all' ? '全部' : activeList === 'today' ? '今天' : activeList === 'planned' ? '计划' : activeList === 'completed' ? '已完成' : activeList}
-                        <span className="text-slate-600 text-xl">{filteredTodos.length}</span>
-                    </h2>
+                <div className="p-6 lg:p-8 pb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setShowSidebar(true)} className="lg:hidden text-primary">
+                            <span className="material-icons">menu_open</span>
+                        </button>
+                        <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-4">
+                            {activeList === 'all' ? '全部' : activeList === 'today' ? '今天' : activeList === 'planned' ? '计划' : activeList === 'completed' ? '已完成' : activeList}
+                            <span className="text-slate-600 text-xl">{filteredTodos.length}</span>
+                        </h2>
+                    </div>
                 </div>
 
                 {/* 待办列表 */}

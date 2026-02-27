@@ -147,7 +147,7 @@ const LogCard: React.FC<LogCardProps> = ({
               )}
             </div>
 
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-2 lg:opacity-0 group-hover:opacity-100 transition-opacity">
               <button onClick={handleEdit} className="text-slate-500 hover:text-primary transition-colors p-1" title="编辑"><span className="material-icons text-[18px]">edit</span></button>
               <button onClick={onDelete} className="text-slate-500 hover:text-danger transition-colors p-1" title="删除"><span className="material-icons text-[18px]">delete</span></button>
             </div>
