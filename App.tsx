@@ -6,7 +6,7 @@ import ReviewView from './components/ReviewView';
 import Header from './components/Header';
 import SetupView from './components/SetupView';
 import ProfileSettingsView from './components/ProfileSettingsView';
-import { generateWeeklyReport, fetchLogs, saveLog } from './aiService';
+import { generateWeeklyReport, fetchLogs, saveLog, deleteLog } from './aiService';
 
 import RegisterView from './components/RegisterView';
 import LoginView from './components/LoginView';
@@ -17,6 +17,9 @@ import ReportHistoryView from './components/ReportHistoryView';
 import NewFeaturesModal from './components/NewFeaturesModal';
 import InboxView from './components/InboxView';
 import ArchiveView from './components/ArchiveView';
+import TodoView from './components/TodoView';
+import TodoReminderModal from './components/TodoReminderModal';
+import { Todo } from './types';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('login');
@@ -33,6 +36,10 @@ const App: React.FC = () => {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [showNewFeatures, setShowNewFeatures] = useState(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showTodoReminder, setShowTodoReminder] = useState(false);
+  const [overdueTodos, setOverdueTodos] = useState<Todo[]>([]);
 
   const handleLoginSuccess = (loggedInUser: User) => {
     localStorage.setItem('user', JSON.stringify(loggedInUser));
@@ -62,6 +69,35 @@ const App: React.FC = () => {
       }
     }
   }, []);
+
+  // 加载待办事项并检查过期提醒
+  useEffect(() => {
+    if (!user) return;
+    const storedTodos = localStorage.getItem(`todos_${user.id}`);
+    if (storedTodos) {
+      try {
+        const parsedTodos: Todo[] = JSON.parse(storedTodos);
+        setTodos(parsedTodos);
+
+        // 检查是否有昨日或更早未完成的待办
+        const today = new Date().toDateString();
+        const overdue = parsedTodos.filter(t => !t.completed && new Date(t.createdAt).toDateString() !== today);
+        if (overdue.length > 0) {
+          setOverdueTodos(overdue);
+          setShowTodoReminder(true);
+        }
+      } catch (e) {
+        console.error("Failed to parse todos", e);
+      }
+    }
+  }, [user]);
+
+  // 待办事项保存逻辑
+  useEffect(() => {
+    if (user && todos.length > 0) {
+      localStorage.setItem(`todos_${user.id}`, JSON.stringify(todos));
+    }
+  }, [todos, user]);
 
   // 1. OAuth 回调检测：仅在存在 code 且未登录时触发
   useEffect(() => {
@@ -151,7 +187,7 @@ const App: React.FC = () => {
     loadData();
   }, [user]);
 
-  const handleAddLog = async (content: string) => {
+  const handleAddLog = async (content: string): Promise<LogEntry | null> => {
     if (!user) return;
     let type = LogType.NOTE;
     let status: LogStatus | undefined = undefined;
@@ -177,11 +213,13 @@ const App: React.FC = () => {
 
     try {
       const saved = await saveLog({ ...newLogData, user_id: user.id });
-      setLogs([saved, ...logs]);
+      setLogs(prev => [saved, ...prev]);
+      return saved;
     } catch (err) {
       console.error("Save log failed", err);
       const localLog: LogEntry = { ...newLogData, id: Date.now().toString(), timestamp: new Date() };
-      setLogs([localLog, ...logs]);
+      setLogs(prev => [localLog, ...prev]);
+      return localLog;
     }
   };
 
@@ -203,6 +241,64 @@ const App: React.FC = () => {
 
   const handleEditLog = (id: string, content: string) => {
     setLogs(prev => prev.map(log => log.id === id ? { ...log, content } : log));
+  };
+
+  // 待办事项操作
+  const handleAddTodo = (content: string, listName: string) => {
+    const newTodo: Todo = {
+      id: Date.now().toString(),
+      content,
+      completed: false,
+      createdAt: new Date().toISOString(),
+      listName
+    };
+    setTodos([newTodo, ...todos]);
+  };
+
+  const handleToggleTodo = async (id: string) => {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+
+    const newCompleted = !todo.completed;
+    let newRelatedLogId = todo.relatedLogId;
+
+    if (newCompleted && user) {
+      // 逻辑回滚：记录日志
+      const logContent = `[待办完成] ${todo.content} (${todo.listName})`;
+      const saved = await handleAddLog(`- [x] ${logContent}`);
+      if (saved) {
+        newRelatedLogId = saved.id;
+      }
+    } else if (!newCompleted && user && todo.relatedLogId) {
+      // 逻辑撤销：删除之前生成的日志
+      try {
+        await deleteLog(todo.relatedLogId, user.id);
+        setLogs(prev => prev.filter(l => l.id !== todo.relatedLogId));
+        newRelatedLogId = undefined;
+      } catch (err) {
+        console.error("Undo log failed", err);
+      }
+    }
+
+    setTodos(prev => prev.map(t => {
+      if (t.id === id) {
+        return {
+          ...t,
+          completed: newCompleted,
+          completedAt: newCompleted ? new Date().toISOString() : undefined,
+          relatedLogId: newRelatedLogId
+        };
+      }
+      return t;
+    }));
+  };
+
+  const handleDeleteTodo = (id: string) => {
+    setTodos(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleUpdateTodo = (id: string, updates: Partial<Todo>) => {
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
   };
 
   const handleRegenerate = async () => {
@@ -260,10 +356,20 @@ const App: React.FC = () => {
           isGenerating={isGenerating}
           config={config}
           onOpenGuide={() => setIsGuideOpen(true)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
       )}
 
       <UserManualModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
+      {showTodoReminder && (
+        <TodoReminderModal
+          overdueTodos={overdueTodos}
+          onClose={() => setShowTodoReminder(false)}
+          onGoToTodos={() => setViewMode('todos')}
+        />
+      )}
 
       {showNewFeatures && (
         <NewFeaturesModal
@@ -338,6 +444,17 @@ const App: React.FC = () => {
             onViewInbox={() => setViewMode('inbox')}
             onViewArchive={() => setViewMode('archive')}
             retentionDays={config.archiveRetentionDays}
+            searchQuery={searchQuery}
+          />
+        )}
+
+        {viewMode === 'todos' && (
+          <TodoView
+            todos={todos}
+            onAddTodo={handleAddTodo}
+            onToggleTodo={handleToggleTodo}
+            onDeleteTodo={handleDeleteTodo}
+            onUpdateTodo={handleUpdateTodo}
           />
         )}
 

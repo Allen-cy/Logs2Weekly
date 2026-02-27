@@ -521,7 +521,6 @@ async def get_logs(user_id: int = Query(...), q: Optional[str] = None):
         
     response = query.order("timestamp", desc=True).execute()
     return response.data
-
 @app.post("/api/logs")
 async def add_log(log: LogEntry):
     client = get_supabase()
@@ -530,6 +529,18 @@ async def add_log(log: LogEntry):
     data = log.dict()
     response = client.table("logs").insert(data).execute()
     return response.data[0]
+
+@app.delete("/api/logs/{log_id}")
+async def delete_log(log_id: str, user_id: int = Query(...)):
+    client = get_supabase()
+    try:
+        # 这里的 log_id 可能是 string (uuid) 也可能是自增 int，取决于数据库定义
+        # 根据 frontend 传参，我们统一按 string 处理或尝试转换
+        client.table("logs").delete().eq("id", log_id).eq("user_id", user_id).execute()
+        return {"success": True}
+    except Exception as e:
+        print(f"Delete log error: {e}")
+        raise HTTPException(status_code=500, detail="删除日志失败")
 
 @app.post("/api/logs/aggregate")
 async def manual_aggregate(user_id: int = Query(...)):

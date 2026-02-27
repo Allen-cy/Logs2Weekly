@@ -85,3 +85,15 @@ export const saveLog = async (log: Omit<LogEntry, 'id'>): Promise<LogEntry> => {
     });
     return await response.json();
 };
+
+export const deleteLog = async (logId: string, userId: number): Promise<{ success: boolean }> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/logs/${logId}?user_id=${userId}`, {
+            method: 'DELETE'
+        });
+        return await response.json();
+    } catch (err) {
+        console.error("Delete log error", err);
+        return { success: false };
+    }
+};

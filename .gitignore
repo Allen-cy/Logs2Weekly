@@ -26,3 +26,4 @@ dist/
 .idea/
 .vscode/
 *.log
+*.pid

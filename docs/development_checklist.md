@@ -12,6 +12,11 @@
 - [x] Phase 1.3: 真实邮箱校验 (SMTP Verification)
 - [x] Phase 2.1: GitHub OAuth 集成
 - [x] Phase 2.2: PWA 功能实现
+- [x] **V4.0: 全局搜索与待办系统**
+  - [x] 导航栏搜索重构 (State Lifting)
+  - [x] 仿苹果 Reminders 待办模块
+  - [x] 待办勾选同步日志记录
+  - [x] 未完成待办次日弹窗提醒
 
 ## 2. 鉴权模块 (Authentication)
 

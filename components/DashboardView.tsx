@@ -22,6 +22,7 @@ interface DashboardViewProps {
   onViewInbox: () => void;
   onViewArchive: () => void;
   retentionDays?: number;
+  searchQuery: string;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({
@@ -38,10 +39,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   availableTags,
   onViewInbox,
   onViewArchive,
-  retentionDays
+  retentionDays,
+  searchQuery
 }) => {
   const [input, setInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [isAggregating, setIsAggregating] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [vizMode, setVizMode] = useState<'heatmap' | 'gantt'>('heatmap');
@@ -155,28 +156,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-24 lg:pb-0">
       <div className={`lg:col-span-8 space-y-8 ${mobileTab !== 'home' ? 'hidden lg:block' : 'block'}`}>
-        {/* 顶部搜索 */}
         <GreetingSection username={user?.username || 'User'} />
 
-        {/* 顶部搜索 */}
-        <div className="relative group flex items-center gap-3">
-          <div className="relative flex-1">
-            <span className="material-icons absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors">search</span>
-            <input
-              type="text"
-              placeholder="搜索您的记录、日报或关键词..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2rem] py-5 pl-14 pr-6 text-white text-sm focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-xl"
-            />
-          </div>
-          <button
-            className="h-14 w-14 rounded-[2rem] bg-slate-800/80 hover:bg-primary hover:text-white text-slate-400 border border-white/5 flex items-center justify-center transition-all shadow-xl active:scale-95"
-            onClick={() => {/* Currently search is realtime, button is visual reinforcement or can clear/focus */ }}
-          >
-            <span className="material-icons">arrow_forward</span>
-          </button>
-        </div>
 
         {/* Pinned User Guide */}
         {showGuide && !searchQuery && (

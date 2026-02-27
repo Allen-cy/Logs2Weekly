@@ -62,7 +62,22 @@ export interface User {
   email_verified?: boolean;
 }
 
-export type ViewMode = 'dashboard' | 'review' | 'setup' | 'login' | 'register' | 'profile' | 'insights' | 'history' | 'inbox' | 'archive';
+export type ViewMode = 'dashboard' | 'review' | 'setup' | 'login' | 'register' | 'profile' | 'insights' | 'history' | 'inbox' | 'archive' | 'todos';
+
+export type TodoList = 'all' | 'today' | 'planned' | 'completed' | string;
+
+export interface Todo {
+  id: string;
+  content: string;
+  completed: boolean;
+  completedAt?: string;    // ISO date string
+  createdAt: string;       // ISO date string
+  dueDate?: string;        // 可选截止日期 ISO date string
+  listName: string;        // 所属列表，默认 '临时待办'
+  priority?: 'high' | 'medium' | 'low';
+  notes?: string;
+  relatedLogId?: string; // 关联生成的日志 ID
+}
 
 export type ModelProvider = 'gemini' | 'kimi' | 'glm' | 'qwen';
 
