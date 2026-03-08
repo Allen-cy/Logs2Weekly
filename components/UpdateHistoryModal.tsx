@@ -22,6 +22,33 @@ export const UPDATE_HISTORY = [
             { icon: 'cloud_sync', title: '全端云端双向同步', desc: '移动端与桌面端数据无缝对齐，引入历史记录防丢激进打捞机制。' },
             { icon: 'insights', title: '全新数据洞察看板', desc: '通过交互式图表分析您的领域分布、产出趋势，科学量化指标。' }
         ]
+    },
+    {
+        version: '2.1.0',
+        date: '2026-02-27',
+        features: [
+            { icon: 'checklist', title: '苹果风格待办中心', desc: '采用 Apple Reminders 视觉设计，重构待办分类，支持独立收纳与打卡。' },
+            { icon: 'smartphone', title: '移动端体验全面革新', desc: '引入移动端专属底部导航 AppBar 与折叠侧边栏，让多设备办公体验起飞。' },
+            { icon: 'manage_search', title: '全局级搜索升级', desc: '搜索框提权至顶部导航栏，大幅减少响应链路，任意界面一触即搜。' },
+            { icon: 'undo', title: '交互撤回增强', desc: '补齐待办任务的状态回溯能力，消除误操作产生的多余日志数据。' }
+        ]
+    },
+    {
+        version: '2.0.0',
+        date: '2026-02-16',
+        features: [
+            { icon: 'account_circle', title: '多用户数据隔离体系', desc: '建立基于邮箱防篡改的用户注册与鉴权，保护个人生产力数据的绝对隐私。' },
+            { icon: 'extension', title: '时间管理四象限', desc: '引入轻量化核心四象限法则，按轻重缓急高效分类管理任务。' },
+            { icon: 'blur_on', title: '高端毛玻璃暗黑 UI', desc: '全面升级为深色赛博调性视觉规范，极致降噪，让你专注于记录本身。' }
+        ]
+    },
+    {
+        version: '1.0.0',
+        date: '2026-02-14',
+        features: [
+            { icon: 'celebration', title: '核心引擎初代上线', desc: '首发支持多模态 AI，建立碎片化日志 -> 周报智能摘要的生产力基建。' },
+            { icon: 'format_paint', title: '极简深色主题确立', desc: '明确了产品少即是多的原则设计框架，减少视觉干扰，提高效率。' }
+        ]
     }
 ];
 

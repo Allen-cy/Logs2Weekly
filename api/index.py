@@ -643,10 +643,14 @@ class FeedbackEntry(BaseModel):
 
 @app.post("/api/feedbacks")
 async def submit_feedback(feedback: FeedbackEntry):
-    client = get_supabase()
-    data = feedback.dict()
-    response = client.table("feedbacks").insert(data).execute()
-    return {"success": True, "data": response.data[0]}
+    try:
+        client = get_supabase()
+        data = feedback.dict()
+        response = client.table("feedbacks").insert(data).execute()
+        return {"success": True, "data": response.data[0] if response.data else None}
+    except Exception as e:
+        print(f"Feedback API error: {e}")
+        raise HTTPException(status_code=500, detail="提交反馈失败")
 
 # --- 待办事项 (Todos) ---
 

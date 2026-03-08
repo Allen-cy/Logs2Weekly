@@ -4,10 +4,3 @@ CREATE TABLE IF NOT EXISTS feedbacks (
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
--- Enable Row Level Security
-ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
-
--- Allow users to see their own feedbacks and insert their own
-CREATE POLICY "Users can insert their own feedbacks." ON feedbacks FOR INSERT WITH CHECK (auth.uid() = user_id::text);
-CREATE POLICY "Users can view their own feedbacks." ON feedbacks FOR SELECT USING (auth.uid() = user_id::text);
