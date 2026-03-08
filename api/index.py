@@ -635,6 +635,63 @@ async def generate_summary_api(req: SummaryRequest):
         print(f"Generate summary API error: {e}")
         raise HTTPException(status_code=500, detail="生成异常")
 
+# --- 待办事项 (Todos) ---
+
+class TodoEntry(BaseModel):
+    content: str
+    completed: bool
+    completed_at: Optional[str] = None
+    created_at: str
+    due_date: Optional[str] = None
+    list_name: str
+    priority: str = "P3"
+    notes: Optional[str] = None
+    user_id: int
+
+class TodoUpdate(BaseModel):
+    content: Optional[str] = None
+    completed: Optional[bool] = None
+    completed_at: Optional[str] = None
+    due_date: Optional[str] = None
+    list_name: Optional[str] = None
+    priority: Optional[str] = None
+    notes: Optional[str] = None
+
+@app.get("/api/todos")
+async def get_todos(user_id: int = Query(...)):
+    client = get_supabase()
+    response = client.table("todos").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    return response.data
+
+@app.post("/api/todos")
+async def add_todo(todo: TodoEntry):
+    client = get_supabase()
+    data = todo.dict()
+    # 确保 ID 是由数据库生成或此处生成的 UUID
+    response = client.table("todos").insert(data).execute()
+    return response.data[0]
+
+@app.put("/api/todos/{todo_id}")
+async def update_todo(todo_id: str, todo: TodoUpdate, user_id: int = Query(...)):
+    client = get_supabase()
+    update_data = {k: v for k, v in todo.dict().items() if v is not None}
+    try:
+        response = client.table("todos").update(update_data).eq("id", todo_id).eq("user_id", user_id).execute()
+        return response.data[0]
+    except Exception as e:
+        print(f"Update todo error: {e}")
+        raise HTTPException(status_code=500, detail="更新待办失败")
+
+@app.delete("/api/todos/{todo_id}")
+async def delete_todo_api(todo_id: str, user_id: int = Query(...)):
+    client = get_supabase()
+    try:
+        client.table("todos").delete().eq("id", todo_id).eq("user_id", user_id).execute()
+        return {"success": True}
+    except Exception as e:
+        print(f"Delete todo error: {e}")
+        raise HTTPException(status_code=500, detail="删除待办失败")
+
 # --- 原有 AI 服务接口 (保留) ---
 
 @app.get("/health")

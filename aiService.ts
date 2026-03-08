@@ -97,3 +97,32 @@ export const deleteLog = async (logId: string, userId: number): Promise<{ succes
         return { success: false };
     }
 };
+export const fetchTodos = async (userId: number): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/todos?user_id=${userId}`);
+    return await response.json();
+};
+
+export const saveTodo = async (todo: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/todos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(todo),
+    });
+    return await response.json();
+};
+
+export const updateTodo = async (todoId: string, userId: number, updates: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/todos/${todoId}?user_id=${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+    });
+    return await response.json();
+};
+
+export const deleteTodo = async (todoId: string, userId: number): Promise<{ success: boolean }> => {
+    const response = await fetch(`${API_BASE_URL}/todos/${todoId}?user_id=${userId}`, {
+        method: 'DELETE'
+    });
+    return await response.json();
+};

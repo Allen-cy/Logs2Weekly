@@ -48,12 +48,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   const [vizMode, setVizMode] = useState<'heatmap' | 'gantt'>('heatmap');
   const [timeView, setTimeView] = useState<'day' | 'week' | 'month'>('day');
 
+  // 恢复草稿和指南状态
   useEffect(() => {
     const hasClosed = localStorage.getItem('hasClosedGuide');
     if (hasClosed === 'true') {
       setShowGuide(false);
     }
-  }, []);
+
+    // 恢复草稿
+    if (user?.id) {
+      const draft = localStorage.getItem(`draft_log_${user.id}`);
+      if (draft) setInput(draft);
+    }
+  }, [user?.id]);
+
+  // 自动保存草稿
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(`draft_log_${user.id}`, input);
+    }
+  }, [input, user?.id]);
 
   const handleCloseGuide = () => {
     setShowGuide(false);
@@ -65,6 +79,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     if (!input.trim()) return;
     onAddLog(input);
     setInput('');
+    if (user?.id) {
+      localStorage.removeItem(`draft_log_${user.id}`);
+    }
   };
 
   const handleManualAggregate = async () => {

@@ -11,6 +11,7 @@ interface HeaderProps {
   onOpenGuide: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  todoCount?: number;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -21,7 +22,8 @@ const Header: React.FC<HeaderProps> = ({
   config,
   onOpenGuide,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  todoCount
 }) => {
   return (
     <header className="bg-surface-dark/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-[100] shadow-md">
@@ -61,10 +63,15 @@ const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => setViewMode('todos')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${viewMode === 'todos' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-400 hover:text-orange-400'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 relative ${viewMode === 'todos' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-400 hover:text-orange-400'}`}
             >
               <span className="material-icons text-sm">checklist</span>
               待办事项
+              {todoCount !== undefined && todoCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] min-w-[14px] h-[14px] flex items-center justify-center rounded-full font-black ring-2 ring-surface-dark animate-in zoom-in-50 duration-300">
+                  {todoCount > 99 ? '99+' : todoCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setViewMode('review')}

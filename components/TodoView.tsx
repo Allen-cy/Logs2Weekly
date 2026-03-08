@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Todo, TodoList, TodoPriority } from '../types';
 import FourQuadrantsView from './FourQuadrantsView';
 
@@ -11,6 +11,7 @@ const PRIORITY_MAP = {
 
 interface TodoViewProps {
     todos: Todo[];
+    user: any;
     onAddTodo: (content: string, listName: string, priority?: TodoPriority) => void;
     onToggleTodo: (id: string) => void;
     onDeleteTodo: (id: string) => void;
@@ -19,6 +20,7 @@ interface TodoViewProps {
 
 const TodoView: React.FC<TodoViewProps> = ({
     todos,
+    user,
     onAddTodo,
     onToggleTodo,
     onDeleteTodo,
@@ -29,6 +31,21 @@ const TodoView: React.FC<TodoViewProps> = ({
     const [showSidebar, setShowSidebar] = useState(false);
     const [viewType, setViewType] = useState<'list' | 'quadrant'>('list');
     const [selectedPriority, setSelectedPriority] = useState<TodoPriority>(TodoPriority.P3);
+
+    // 恢复草稿
+    useEffect(() => {
+        if (user?.id) {
+            const draft = localStorage.getItem(`draft_todo_${user.id}`);
+            if (draft) setNewTodoInput(draft);
+        }
+    }, [user?.id]);
+
+    // 自动保存草稿
+    useEffect(() => {
+        if (user?.id) {
+            localStorage.setItem(`draft_todo_${user.id}`, newTodoInput);
+        }
+    }, [newTodoInput, user?.id]);
 
     const filteredTodos = useMemo(() => {
         let result = todos;
@@ -61,6 +78,9 @@ const TodoView: React.FC<TodoViewProps> = ({
             : (activeList as string);
         onAddTodo(newTodoInput, list, selectedPriority);
         setNewTodoInput('');
+        if (user?.id) {
+            localStorage.removeItem(`draft_todo_${user.id}`);
+        }
     };
 
     const listCounts = useMemo(() => {

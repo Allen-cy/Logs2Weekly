@@ -6,7 +6,7 @@ import ReviewView from './components/ReviewView';
 import Header from './components/Header';
 import SetupView from './components/SetupView';
 import ProfileSettingsView from './components/ProfileSettingsView';
-import { generateWeeklyReport, fetchLogs, saveLog, deleteLog } from './aiService';
+import { generateWeeklyReport, fetchLogs, saveLog, deleteLog, fetchTodos, saveTodo, updateTodo as apiUpdateTodo, deleteTodo as apiDeleteTodo } from './aiService';
 
 import RegisterView from './components/RegisterView';
 import LoginView from './components/LoginView';
@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [showNewFeatures, setShowNewFeatures] = useState(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [isTodosInitialized, setIsTodosInitialized] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTodoReminder, setShowTodoReminder] = useState(false);
   const [overdueTodos, setOverdueTodos] = useState<Todo[]>([]);
@@ -72,43 +73,114 @@ const App: React.FC = () => {
 
   // 加载待办事项并检查过期提醒
   useEffect(() => {
-    if (!user) return;
-    const storedTodos = localStorage.getItem(`todos_${user.id}`);
-    if (storedTodos) {
-      try {
-        const parsedTodos: Todo[] = JSON.parse(storedTodos);
+    const loadTodos = async () => {
+      const userTodosKey = user ? `todos_${user.id}` : 'todos';
+      let localStored = localStorage.getItem(userTodosKey);
+      let localParsed: Todo[] = [];
 
-        // 数据迁移：将旧的字符串优先级映射到新的枚举
-        const migratedTodos = parsedTodos.map(todo => {
-          if ((todo as any).priority === 'high') return { ...todo, priority: TodoPriority.P0 };
-          if ((todo as any).priority === 'medium') return { ...todo, priority: TodoPriority.P1 };
-          if ((todo as any).priority === 'low') return { ...todo, priority: TodoPriority.P3 };
-          // 如果没有优先级，默认设为 P3 (不重要不紧急)
-          if (!todo.priority) return { ...todo, priority: TodoPriority.P3 };
-          return todo;
-        });
-
-        setTodos(migratedTodos as Todo[]);
-
-        // 检查是否有昨日或更早未完成的待办
-        const today = new Date().toDateString();
-        const overdue = migratedTodos.filter(t => !t.completed && new Date(t.createdAt).toDateString() !== today);
-        if (overdue.length > 0) {
-          setOverdueTodos(overdue);
-          setShowTodoReminder(true);
-        }
-      } catch (e) {
-        console.error("Failed to parse todos", e);
+      // 1. 先从本地打捞（包含 legacy 合并）
+      if (!localStored && user) {
+        const legacy = localStorage.getItem('todos');
+        if (legacy) localStored = legacy;
       }
-    }
+      if (localStored) {
+        try { localParsed = JSON.parse(localStored); } catch (e) { }
+      }
+
+      let masterTodos: Todo[] = [...localParsed];
+
+      // 2. 如果已登录，从后端打捞并同步（双向对冲）
+      if (user) {
+        try {
+          const apiData = await fetchTodos(user.id);
+          if (apiData && Array.isArray(apiData)) {
+            const apiTodos: Todo[] = apiData.map(t => ({
+              id: String(t.id),
+              content: t.content,
+              completed: t.completed,
+              completedAt: t.completed_at,
+              createdAt: t.created_at,
+              dueDate: t.due_date,
+              listName: t.list_name,
+              priority: (t.priority as TodoPriority) || TodoPriority.P3,
+              notes: t.notes
+            }));
+
+            const apiIds = new Set(apiTodos.map(t => t.id));
+            const localOnly = localParsed.filter(t => !apiIds.has(t.id));
+
+            // 如果本地有云端没有的数据（如手机端残留），主动“上推”一份
+            if (localOnly.length > 0) {
+              console.log(`Pushing ${localOnly.length} local items to cloud sync...`);
+              for (const todo of localOnly) {
+                try {
+                  await saveTodo({
+                    content: todo.content,
+                    completed: todo.completed,
+                    created_at: todo.createdAt,
+                    list_name: todo.listName,
+                    priority: todo.priority || TodoPriority.P3,
+                    user_id: user.id,
+                    notes: todo.notes
+                  });
+                } catch (saveErr) {
+                  console.error("Migration upload failed", saveErr);
+                }
+              }
+              // 重新抓取一份云端数据作为最终源，确保 ID 对齐
+              const freshApiData = await fetchTodos(user.id);
+              masterTodos = freshApiData.map((t: any) => ({
+                id: String(t.id),
+                content: t.content,
+                completed: t.completed,
+                completedAt: t.completed_at,
+                createdAt: t.created_at,
+                dueDate: t.due_date,
+                listName: t.list_name,
+                priority: (t.priority as TodoPriority) || TodoPriority.P3,
+                notes: t.notes
+              }));
+            } else {
+              masterTodos = apiTodos;
+            }
+          }
+        } catch (e) {
+          console.error("Sync API todos failed", e);
+        }
+      }
+
+      const migrated = masterTodos.map(todo => {
+        const t = todo as any;
+        if (t.priority === 'high') return { ...todo, priority: TodoPriority.P0 };
+        if (t.priority === 'medium') return { ...todo, priority: TodoPriority.P1 };
+        if (t.priority === 'low') return { ...todo, priority: TodoPriority.P3 };
+        return { ...todo, priority: todo.priority || TodoPriority.P3 };
+      });
+
+      setTodos(migrated);
+
+      const today = new Date().toDateString();
+      const overdue = migrated.filter(t => !t.completed && new Date(t.createdAt).toDateString() !== today);
+      if (overdue.length > 0) {
+        setOverdueTodos(overdue);
+        setShowTodoReminder(true);
+      }
+
+      setIsTodosInitialized(true);
+    };
+
+    loadTodos();
   }, [user]);
 
   // 待办事项保存逻辑
   useEffect(() => {
-    if (user && todos.length > 0) {
-      localStorage.setItem(`todos_${user.id}`, JSON.stringify(todos));
+    // 关键：只有在初始加载完成后，才允许将当前的 todos 状态回写到 localStorage
+    // 否则，在 todos 为初始值 [] 的瞬时，会把已有的数据覆盖掉
+    if (isTodosInitialized) {
+      const key = user ? `todos_${user.id}` : 'todos';
+      localStorage.setItem(key, JSON.stringify(todos));
     }
-  }, [todos, user]);
+  }, [todos, user, isTodosInitialized]);
 
   // 1. OAuth 回调检测：仅在存在 code 且未登录时触发
   useEffect(() => {
@@ -255,7 +327,7 @@ const App: React.FC = () => {
   };
 
   // 待办事项操作
-  const handleAddTodo = (content: string, listName: string, priority?: TodoPriority) => {
+  const handleAddTodo = async (content: string, listName: string, priority?: TodoPriority) => {
     const newTodo: Todo = {
       id: Date.now().toString(),
       content,
@@ -264,7 +336,27 @@ const App: React.FC = () => {
       listName,
       priority: priority || TodoPriority.P3
     };
-    setTodos([newTodo, ...todos]);
+
+    setTodos(prev => [newTodo, ...prev]);
+
+    if (user) {
+      try {
+        const saved = await saveTodo({
+          content: newTodo.content,
+          completed: newTodo.completed,
+          created_at: newTodo.createdAt,
+          list_name: newTodo.listName,
+          priority: newTodo.priority,
+          user_id: user.id
+        });
+        if (saved && saved.id) {
+          // 更新 ID 到真实 ID
+          setTodos(prev => prev.map(t => t.id === newTodo.id ? { ...t, id: String(saved.id) } : t));
+        }
+      } catch (err) {
+        console.error("Save todo to backend failed", err);
+      }
+    }
   };
 
   const handleToggleTodo = async (id: string) => {
@@ -272,17 +364,14 @@ const App: React.FC = () => {
     if (!todo) return;
 
     const newCompleted = !todo.completed;
+    const now = new Date().toISOString();
     let newRelatedLogId = todo.relatedLogId;
 
     if (newCompleted && user) {
-      // 逻辑回滚：记录日志
       const logContent = `[待办完成] ${todo.content} (${todo.listName})`;
       const saved = await handleAddLog(`- [x] ${logContent}`);
-      if (saved) {
-        newRelatedLogId = saved.id;
-      }
+      if (saved) newRelatedLogId = saved.id;
     } else if (!newCompleted && user && todo.relatedLogId) {
-      // 逻辑撤销：删除之前生成的日志
       try {
         await deleteLog(todo.relatedLogId, user.id);
         setLogs(prev => prev.filter(l => l.id !== todo.relatedLogId));
@@ -292,25 +381,51 @@ const App: React.FC = () => {
       }
     }
 
-    setTodos(prev => prev.map(t => {
-      if (t.id === id) {
-        return {
-          ...t,
+    setTodos(prev => prev.map(t => t.id === id ? {
+      ...t,
+      completed: newCompleted,
+      completedAt: newCompleted ? now : undefined,
+      relatedLogId: newRelatedLogId
+    } : t));
+
+    if (user) {
+      try {
+        await apiUpdateTodo(id, user.id, {
           completed: newCompleted,
-          completedAt: newCompleted ? new Date().toISOString() : undefined,
-          relatedLogId: newRelatedLogId
-        };
+          completed_at: newCompleted ? now : null
+        });
+      } catch (err) {
+        console.error("Update todo status on backend failed", err);
       }
-      return t;
-    }));
+    }
   };
 
-  const handleDeleteTodo = (id: string) => {
+  const handleDeleteTodo = async (id: string) => {
     setTodos(prev => prev.filter(t => t.id !== id));
+    if (user) {
+      try {
+        await apiDeleteTodo(id, user.id);
+      } catch (err) {
+        console.error("Delete todo on backend failed", err);
+      }
+    }
   };
 
-  const handleUpdateTodo = (id: string, updates: Partial<Todo>) => {
+  const handleUpdateTodo = async (id: string, updates: Partial<Todo>) => {
     setTodos(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    if (user) {
+      try {
+        const backendUpdates: any = {};
+        if (updates.content) backendUpdates.content = updates.content;
+        if (updates.priority) backendUpdates.priority = updates.priority;
+        if (updates.listName) backendUpdates.list_name = updates.listName;
+        if (updates.notes) backendUpdates.notes = updates.notes;
+
+        await apiUpdateTodo(id, user.id, backendUpdates);
+      } catch (err) {
+        console.error("Update todo on backend failed", err);
+      }
+    }
   };
 
   const handleRegenerate = async () => {
@@ -370,6 +485,7 @@ const App: React.FC = () => {
           onOpenGuide={() => setIsGuideOpen(true)}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          todoCount={todos.filter(t => !t.completed).length}
         />
       )}
 
@@ -463,6 +579,7 @@ const App: React.FC = () => {
         {viewMode === 'todos' && (
           <TodoView
             todos={todos}
+            user={user}
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
             onDeleteTodo={handleDeleteTodo}
