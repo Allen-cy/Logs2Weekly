@@ -2,7 +2,9 @@
 export enum LogType {
   TASK = 'task',
   NOTE = 'note',
-  AI_SUGGESTION = 'ai_suggestion'
+  AI_SUGGESTION = 'ai_suggestion',
+  FEEDBACK = 'feedback',
+  NOTIFICATION = 'notification'
 }
 
 export enum LogStatus {

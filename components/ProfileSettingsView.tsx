@@ -3,6 +3,7 @@ import { User, AppConfig } from '../types';
 import { API_BASE_URL } from '../aiService';
 import UpdateHistoryModal from './UpdateHistoryModal';
 import FeedbackModal from './FeedbackModal';
+import AdminFeedbackPanel from './AdminFeedbackPanel';
 
 interface ProfileSettingsViewProps {
     user: User;
@@ -30,6 +31,9 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [message, setMessage] = useState({ type: '', text: '' });
     const [showUpdateHistory, setShowUpdateHistory] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
+    const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+    const isAuthor = user.email === '394142646@qq.com';
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -332,6 +336,27 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                             <span className="material-icons text-slate-600 group-hover:text-amber-500 transition-colors">chevron_right</span>
                         </button>
                     </div>
+
+                    {/* Admin Actions */}
+                    {isAuthor && (
+                        <div className="mt-4">
+                            <button
+                                onClick={() => setShowAdminPanel(true)}
+                                className="w-full bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 hover:bg-amber-500/20 transition-colors rounded-2xl p-6 shadow-xl flex items-center justify-between group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <span className="material-icons text-xl">admin_panel_settings</span>
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="text-amber-500 font-bold text-sm">上帝视角：用户反馈后台</h4>
+                                        <p className="text-[10px] text-amber-500/70 mt-0.5">查看产品建议并定向推送系统消息</p>
+                                    </div>
+                                </div>
+                                <span className="material-icons text-amber-500/50 group-hover:text-amber-500 transition-colors">chevron_right</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -341,6 +366,10 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
 
             {showFeedback && (
                 <FeedbackModal userId={user.id} onClose={() => setShowFeedback(false)} />
+            )}
+
+            {showAdminPanel && (
+                <AdminFeedbackPanel user={user} onClose={() => setShowAdminPanel(false)} />
             )}
         </div>
     );

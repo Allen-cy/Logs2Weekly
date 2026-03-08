@@ -24,6 +24,7 @@ const LogCard: React.FC<LogCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isSummary = log.type === LogType.AI_SUGGESTION || (log.type as any) === 'summary';
+  const isNotification = log.type === LogType.NOTIFICATION;
   const isDone = log.status === LogStatus.DONE;
   const isInProgress = log.status === LogStatus.IN_PROGRESS;
 
@@ -42,7 +43,7 @@ const LogCard: React.FC<LogCardProps> = ({
   return (
     <div className={`glass-panel rounded-xl p-5 hover:border-primary/30 transition-all group relative overflow-hidden ${isDone ? 'opacity-70 bg-slate-900/40' : ''}`}>
       {/* Dynamic Status Border */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isSummary ? 'bg-purple-500' :
+      <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isNotification ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : isSummary ? 'bg-purple-500' :
         isDone ? 'bg-green-500' :
           isInProgress ? 'bg-amber-500' : 'bg-slate-600'
         }`}></div>
@@ -50,7 +51,11 @@ const LogCard: React.FC<LogCardProps> = ({
       <div className="flex items-start gap-4">
         {/* Leading Indicator */}
         <div className="mt-1 flex-shrink-0">
-          {isSummary ? (
+          {isNotification ? (
+            <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
+              <span className="material-icons text-sm">mark_email_unread</span>
+            </div>
+          ) : isSummary ? (
             <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
               <span className="material-icons text-sm">auto_awesome</span>
             </div>
@@ -74,12 +79,12 @@ const LogCard: React.FC<LogCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div className="flex flex-wrap items-center gap-2 min-w-0">
-              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border transition-colors flex-shrink-0 ${isSummary ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border transition-colors flex-shrink-0 ${isNotification ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : isSummary ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                 isDone ? 'bg-green-500/10 text-green-500 border-green-500/20' :
                   isInProgress ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                     'bg-slate-500/10 text-slate-400 border-slate-500/20'
                 }`}>
-                {isSummary ? '每日洞察' : log.status === LogStatus.DONE ? '已完成' : log.status === LogStatus.IN_PROGRESS ? '进行中' : '笔记'}
+                {isNotification ? '系统消息' : isSummary ? '每日洞察' : log.status === LogStatus.DONE ? '已完成' : log.status === LogStatus.IN_PROGRESS ? '进行中' : '笔记'}
               </span>
 
               {!isExpanded && (
@@ -112,7 +117,7 @@ const LogCard: React.FC<LogCardProps> = ({
 
           {/* Main Content (Markdown) */}
           <div className={`transition-all duration-300 ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-            <div className={`prose prose-invert prose-sm mb-4 ${isDone ? 'line-through opacity-50' : 'text-slate-200'}`}>
+            <div className={`prose prose-invert prose-sm mb-4 ${isDone ? 'line-through opacity-50' : isNotification ? 'text-amber-100/90 font-medium' : 'text-slate-200'}`}>
               <ReactMarkdown>{log.content}</ReactMarkdown>
             </div>
           </div>

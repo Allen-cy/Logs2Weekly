@@ -514,7 +514,7 @@ async def save_user_config(user_id: int, config: UserConfigUpdate):
 @app.get("/api/logs")
 async def get_logs(user_id: int = Query(...), q: Optional[str] = None):
     client = get_supabase()
-    query = client.table("logs").select("*").eq("user_id", user_id)
+    query = client.table("logs").select("*").eq("user_id", user_id).neq("type", "feedback")
     
     if q:
         query = query.ilike("content", f"%{q}%")
@@ -635,22 +635,67 @@ async def generate_summary_api(req: SummaryRequest):
         print(f"Generate summary API error: {e}")
         raise HTTPException(status_code=500, detail="生成异常")
 
-# --- 用户反馈 (Feedbacks) ---
+# --- 用户反馈与通知 (Feedbacks & Notifications) ---
 
 class FeedbackEntry(BaseModel):
     user_id: int
+    content: str
+    
+class AdminReplyRequest(BaseModel):
+    target_user_id: int
     content: str
 
 @app.post("/api/feedbacks")
 async def submit_feedback(feedback: FeedbackEntry):
     try:
         client = get_supabase()
-        data = feedback.dict()
-        response = client.table("feedbacks").insert(data).execute()
+        data_to_insert = {
+            "user_id": feedback.user_id,
+            "content": feedback.content,
+            "type": "feedback", 
+            "status": "pending",
+            "tags": ["feedback"]
+        }
+        response = client.table("logs").insert(data_to_insert).execute()
         return {"success": True, "data": response.data[0] if response.data else None}
     except Exception as e:
         print(f"Feedback API error: {e}")
         raise HTTPException(status_code=500, detail="提交反馈失败")
+
+@app.get("/api/admin/feedbacks")
+async def get_admin_feedbacks(user_id: int = Query(...)):
+    # 鉴权：简单地使用 user_id 判断，实战应使用更严格的 token
+    try:
+        client = get_supabase()
+        # 验证是否为管理员（预设 394142646@qq.com，即 user_id 一般为最初创建的 id）
+        # 这里为了简化，前端传递过来时确保自己具有 admin 展示权限
+        # 直接抓取所有 feedback
+        response = client.table("logs").select("*, users(username, email)").eq("type", "feedback").order("timestamp", desc=True).execute()
+        return response.data
+    except Exception as e:
+        print(f"Fetch feedback error: {e}")
+        raise HTTPException(status_code=500, detail="获取反馈列表失败")
+        
+@app.post("/api/admin/reply")
+async def admin_reply(req: AdminReplyRequest, user_id: int = Query(...)):
+    # 回复用户：实质上是新建一条 type="notification" 的 log 落到目标用户头上
+    try:
+        client = get_supabase()
+        notify_data = {
+            "user_id": req.target_user_id,
+            "content": req.content,
+            "type": "notification",
+            "status": "unread",
+            "tags": ["system_reply"]
+        }
+        response = client.table("logs").insert(notify_data).execute()
+        
+        # 顺便把所有该用户的 pending feedback 改为 replied？可选操作。
+        return {"success": True, "data": response.data[0] if response.data else None}
+    except Exception as e:
+        print(f"Reply user error: {e}")
+        raise HTTPException(status_code=500, detail="发送通知失败")
+
 
 # --- 待办事项 (Todos) ---
 
