@@ -76,18 +76,30 @@ const App: React.FC = () => {
     const loadTodos = async () => {
       const userTodosKey = user ? `todos_${user.id}` : 'todos';
       let localStored = localStorage.getItem(userTodosKey);
-      let localParsed: Todo[] = [];
 
-      // 1. 先从本地打捞（包含 legacy 合并）
-      if (!localStored && user) {
-        const legacy = localStorage.getItem('todos');
-        if (legacy) localStored = legacy;
+      // 1. 激进式打捞：无论当前状态如何，都检查 legacy 'todos' (旧全局 Key) 并合并
+      const legacy = localStorage.getItem('todos');
+      if (legacy) {
+        try {
+          const legacyParsed: Todo[] = JSON.parse(legacy);
+          if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+            console.log(`Found ${legacyParsed.length} legacy items during scan...`);
+            const localParsed: Todo[] = localStored ? JSON.parse(localStored) : [];
+            const existingIds = new Set(localParsed.map(t => t.id));
+            const newMigrationItems = legacyParsed.filter(t => !existingIds.has(t.id));
+            if (newMigrationItems.length > 0) {
+              const merged = [...localParsed, ...newMigrationItems];
+              localStorage.setItem(userTodosKey, JSON.stringify(merged));
+              localStored = JSON.stringify(merged);
+            }
+          }
+        } catch (e) { }
       }
+
+      let masterTodos: Todo[] = [];
       if (localStored) {
-        try { localParsed = JSON.parse(localStored); } catch (e) { }
+        try { masterTodos = JSON.parse(localStored); } catch (e) { }
       }
-
-      let masterTodos: Todo[] = [...localParsed];
 
       // 2. 如果已登录，从后端打捞并同步（双向对冲）
       if (user) {
@@ -106,12 +118,13 @@ const App: React.FC = () => {
               notes: t.notes
             }));
 
-            const apiIds = new Set(apiTodos.map(t => t.id));
-            const localOnly = localParsed.filter(t => !apiIds.has(t.id));
+            // 使用内容+创建时间指纹做去重推送
+            const apiFingerprints = new Set(apiTodos.map(t => t.content + t.createdAt));
+            const localOnly = masterTodos.filter(t => !apiFingerprints.has(t.content + t.createdAt));
 
-            // 如果本地有云端没有的数据（如手机端残留），主动“上推”一份
+            // 如果本地有云端没有的数据，主动推送
             if (localOnly.length > 0) {
-              console.log(`Pushing ${localOnly.length} local items to cloud sync...`);
+              console.log(`Pushing ${localOnly.length} local items to cloud...`);
               for (const todo of localOnly) {
                 try {
                   await saveTodo({
@@ -123,11 +136,9 @@ const App: React.FC = () => {
                     user_id: user.id,
                     notes: todo.notes
                   });
-                } catch (saveErr) {
-                  console.error("Migration upload failed", saveErr);
-                }
+                } catch (saveErr) { }
               }
-              // 重新抓取一份云端数据作为最终源，确保 ID 对齐
+              // 重新抓取
               const freshApiData = await fetchTodos(user.id);
               masterTodos = freshApiData.map((t: any) => ({
                 id: String(t.id),
@@ -149,6 +160,7 @@ const App: React.FC = () => {
         }
       }
 
+      // 3. 统一迁移优先级格式并设置状态
       const migrated = masterTodos.map(todo => {
         const t = todo as any;
         if (t.priority === 'high') return { ...todo, priority: TodoPriority.P0 };
