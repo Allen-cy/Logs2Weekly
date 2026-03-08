@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { User, AppConfig } from '../types';
 import { API_BASE_URL } from '../aiService';
+import UpdateHistoryModal from './UpdateHistoryModal';
+import FeedbackModal from './FeedbackModal';
 
 interface ProfileSettingsViewProps {
     user: User;
@@ -26,6 +28,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [retentionDays, setRetentionDays] = useState(config.archiveRetentionDays || 15);
     const [isUpdating, setIsUpdating] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [showUpdateHistory, setShowUpdateHistory] = useState(false);
+    const [showFeedback, setShowFeedback] = useState(false);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -293,8 +297,51 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                             </div>
                         </div>
                     </section>
+
+                    {/* System Actions */}
+                    <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                        <button
+                            onClick={() => setShowUpdateHistory(true)}
+                            className="flex-1 bg-slate-900/40 backdrop-blur-xl border border-white/5 hover:bg-white/5 transition-colors rounded-2xl p-6 shadow-xl flex items-center justify-between group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <span className="material-icons">history</span>
+                                </div>
+                                <div className="text-left">
+                                    <h4 className="text-white font-bold text-sm">版本更新历史</h4>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">查看我们一步步走来的足迹</p>
+                                </div>
+                            </div>
+                            <span className="material-icons text-slate-600 group-hover:text-primary transition-colors">chevron_right</span>
+                        </button>
+
+                        <button
+                            onClick={() => setShowFeedback(true)}
+                            className="flex-1 bg-slate-900/40 backdrop-blur-xl border border-white/5 hover:bg-white/5 transition-colors rounded-2xl p-6 shadow-xl flex items-center justify-between group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <span className="material-icons">campaign</span>
+                                </div>
+                                <div className="text-left">
+                                    <h4 className="text-white font-bold text-sm">吐槽与建议</h4>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">你的想法是我进步的动力</p>
+                                </div>
+                            </div>
+                            <span className="material-icons text-slate-600 group-hover:text-amber-500 transition-colors">chevron_right</span>
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {showUpdateHistory && (
+                <UpdateHistoryModal onClose={() => setShowUpdateHistory(false)} autoTriggered={false} />
+            )}
+
+            {showFeedback && (
+                <FeedbackModal userId={user.id} onClose={() => setShowFeedback(false)} />
+            )}
         </div>
     );
 };

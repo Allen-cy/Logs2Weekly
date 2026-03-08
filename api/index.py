@@ -635,6 +635,19 @@ async def generate_summary_api(req: SummaryRequest):
         print(f"Generate summary API error: {e}")
         raise HTTPException(status_code=500, detail="生成异常")
 
+# --- 用户反馈 (Feedbacks) ---
+
+class FeedbackEntry(BaseModel):
+    user_id: int
+    content: str
+
+@app.post("/api/feedbacks")
+async def submit_feedback(feedback: FeedbackEntry):
+    client = get_supabase()
+    data = feedback.dict()
+    response = client.table("feedbacks").insert(data).execute()
+    return {"success": True, "data": response.data[0]}
+
 # --- 待办事项 (Todos) ---
 
 class TodoEntry(BaseModel):

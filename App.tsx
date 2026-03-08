@@ -14,7 +14,7 @@ import { API_BASE_URL } from './aiService';
 import UserManualModal from './components/UserManualModal';
 import InsightsView from './components/InsightsView';
 import ReportHistoryView from './components/ReportHistoryView';
-import NewFeaturesModal from './components/NewFeaturesModal';
+import UpdateHistoryModal, { APP_VERSION } from './components/UpdateHistoryModal';
 import InboxView from './components/InboxView';
 import ArchiveView from './components/ArchiveView';
 import TodoView from './components/TodoView';
@@ -34,7 +34,7 @@ const App: React.FC = () => {
     apiKeyTested: false,
   });
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [showNewFeatures, setShowNewFeatures] = useState(false);
+  const [showUpdateHistory, setShowUpdateHistory] = useState(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isTodosInitialized, setIsTodosInitialized] = useState(false);
@@ -58,10 +58,11 @@ const App: React.FC = () => {
           setUser(parsedUser);
           setViewMode('dashboard');
 
-          // 检查是否显示新功能弹窗 (V3.0)
-          const hasSeenV3 = localStorage.getItem('hasSeenV3Updates');
-          if (!hasSeenV3) {
-            setShowNewFeatures(true);
+          // 检查是否显示新版本更新日志
+          const lastSeenVersion = localStorage.getItem('lastSeenVersion');
+          if (lastSeenVersion !== APP_VERSION) {
+            setShowUpdateHistory(true);
+            localStorage.setItem('lastSeenVersion', APP_VERSION);
           }
         }
       } catch (e) {
@@ -577,12 +578,10 @@ const App: React.FC = () => {
         />
       )}
 
-      {showNewFeatures && (
-        <NewFeaturesModal
-          onClose={() => {
-            setShowNewFeatures(false);
-            localStorage.setItem('hasSeenV3Updates', 'true');
-          }}
+      {showUpdateHistory && (
+        <UpdateHistoryModal
+          autoTriggered={true}
+          onClose={() => setShowUpdateHistory(false)}
         />
       )}
 

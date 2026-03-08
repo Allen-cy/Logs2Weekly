@@ -36,10 +36,21 @@ const TodoView: React.FC<TodoViewProps> = ({
     const [editList, setEditList] = useState('');
     const [editPriority, setEditPriority] = useState<TodoPriority>(TodoPriority.P3);
 
+    // 新增状态：替换 prompt 以避免闪退
+    const [isAddingList, setIsAddingList] = useState(false);
+    const [newListNameInput, setNewListNameInput] = useState('');
+    const [renamingListName, setRenamingListName] = useState<string | null>(null);
+    const [renameListInput, setRenameListInput] = useState('');
+
     // 自定义列表状态
     const [customLists, setCustomLists] = useState<string[]>(() => {
         const saved = localStorage.getItem(`custom_todo_lists`);
-        return saved ? JSON.parse(saved) : ['工作', '学习', '健康', '临时待办'];
+        try {
+            const parsed = saved ? JSON.parse(saved) : null;
+            return Array.isArray(parsed) ? parsed : ['工作', '学习', '健康', '临时待办'];
+        } catch (e) {
+            return ['工作', '学习', '健康', '临时待办'];
+        }
     });
 
     useEffect(() => {
@@ -67,33 +78,38 @@ const TodoView: React.FC<TodoViewProps> = ({
     };
 
     // 新增列表
-    const handleAddList = () => {
-        const name = prompt("请输入新列表名称：");
-        if (name && name.trim() && !customLists.includes(name.trim())) {
-            setCustomLists([...customLists, name.trim()]);
+    const handleAddListSubmit = (e?: React.FormEvent) => {
+        e?.preventDefault();
+        const name = newListNameInput.trim();
+        if (name && !customLists.includes(name)) {
+            setCustomLists([...customLists, name]);
         }
+        setNewListNameInput('');
+        setIsAddingList(false);
     };
 
     // 修改列表名
-    const handleRenameList = (oldName: string) => {
-        const newName = prompt(`将列表 "${oldName}" 重命名为：`, oldName);
-        if (newName && newName.trim() && newName.trim() !== oldName && !customLists.includes(newName.trim())) {
-            setCustomLists(customLists.map(l => l === oldName ? newName.trim() : l));
+    const handleRenameListSubmit = (oldName: string, e?: React.FormEvent) => {
+        e?.preventDefault();
+        const newName = renameListInput.trim();
+        if (newName && newName !== oldName && !customLists.includes(newName)) {
+            setCustomLists(customLists.map(l => l === oldName ? newName : l));
             // 更新所有属于旧列表的待办
             todos.forEach(t => {
                 if (t.listName === oldName) {
-                    onUpdateTodo(t.id, { listName: newName.trim() });
+                    onUpdateTodo(t.id, { listName: newName });
                 }
             });
             if (activeList === oldName) {
-                setActiveList(newName.trim());
+                setActiveList(newName);
             }
         }
+        setRenamingListName(null);
     };
 
     // 删除列表
     const handleDeleteList = (name: string) => {
-        if (confirm(`确定要删除列表 "${name}" 吗？该列表下的待办将移至 "临时待办"。`)) {
+        if (window.confirm(`确定要删除列表 "${name}" 吗？该列表下的待办将移至 "临时待办"。`)) {
             setCustomLists(customLists.filter(l => l !== name));
             todos.forEach(t => {
                 if (t.listName === name) {
@@ -218,31 +234,68 @@ const TodoView: React.FC<TodoViewProps> = ({
             <div className="mt-4">
                 <div className="flex items-center justify-between mb-4 ml-2 mr-2">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">我的列表</h3>
-                    <button onClick={handleAddList} className="text-slate-400 hover:text-white" title="新增列表">
+                    <button onClick={() => { setIsAddingList(true); setNewListNameInput(''); }} className="text-slate-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 w-6 h-6 rounded-md flex items-center justify-center" title="新增列表">
                         <span className="material-icons text-sm">add</span>
                     </button>
                 </div>
+
+                {isAddingList && (
+                    <form onSubmit={handleAddListSubmit} className="mb-2 flex items-center gap-2 px-2">
+                        <input
+                            type="text"
+                            value={newListNameInput}
+                            onChange={(e) => setNewListNameInput(e.target.value)}
+                            placeholder="新列表名..."
+                            className="flex-1 bg-black/30 border border-primary/50 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary w-full"
+                            autoFocus
+                        />
+                        <button type="button" onClick={() => setIsAddingList(false)} className="text-slate-400 hover:text-white p-1">
+                            <span className="material-icons text-[14px]">close</span>
+                        </button>
+                    </form>
+                )}
+
                 <div className="space-y-1">
                     {customLists.map(name => (
                         <div key={name} className="group relative">
-                            <button
-                                onClick={() => { setActiveList(name); setShowSidebar(false); }}
-                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeList === name ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className="material-icons text-lg opacity-70">list</span>
-                                    <span className="text-sm font-bold">{name}</span>
-                                </div>
-                                <span className="text-[10px] opacity-50 block group-hover:hidden border border-white/10 px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{todos.filter(t => t.listName === name && !t.completed).length}</span>
-                            </button>
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-white/10 shadow-lg">
-                                <button onClick={(e) => { e.stopPropagation(); handleRenameList(name); }} className="p-1 text-slate-400 hover:text-primary transition-colors" title="重命名">
-                                    <span className="material-icons text-[14px]">edit</span>
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteList(name); }} className="p-1 text-slate-400 hover:text-danger transition-colors" title="删除">
-                                    <span className="material-icons text-[14px]">delete</span>
-                                </button>
-                            </div>
+                            {renamingListName === name ? (
+                                <form onSubmit={(e) => handleRenameListSubmit(name, e)} className="flex items-center gap-2 px-2 py-2 mb-1 bg-white/5 rounded-xl border border-primary/30">
+                                    <input
+                                        type="text"
+                                        value={renameListInput}
+                                        onChange={(e) => setRenameListInput(e.target.value)}
+                                        className="flex-1 bg-black/40 border border-transparent rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-primary/50"
+                                        autoFocus
+                                    />
+                                    <button type="submit" className="text-primary hover:text-blue-400 p-1">
+                                        <span className="material-icons text-[14px]">check</span>
+                                    </button>
+                                    <button type="button" onClick={() => setRenamingListName(null)} className="text-slate-500 hover:text-white p-1">
+                                        <span className="material-icons text-[14px]">close</span>
+                                    </button>
+                                </form>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => { setActiveList(name); setShowSidebar(false); }}
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeList === name ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-icons text-lg opacity-70">list</span>
+                                            <span className="text-sm font-bold">{name}</span>
+                                        </div>
+                                        <span className="text-[10px] opacity-50 block group-hover:hidden border border-white/10 px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{todos.filter(t => t.listName === name && !t.completed).length}</span>
+                                    </button>
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-white/10 shadow-lg z-10">
+                                        <button onClick={(e) => { e.stopPropagation(); setRenameListInput(name); setRenamingListName(name); }} className="p-1 text-slate-400 hover:text-primary transition-colors" title="重命名">
+                                            <span className="material-icons text-[14px]">edit</span>
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteList(name); }} className="p-1 text-slate-400 hover:text-danger transition-colors" title="删除">
+                                            <span className="material-icons text-[14px]">delete</span>
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ))}
                 </div>
