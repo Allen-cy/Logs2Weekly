@@ -33,7 +33,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [showFeedback, setShowFeedback] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-    const isAuthor = user.email === '394142646@qq.com';
+    const isAuthor = user.email === 'chongzhengchai@gmail.com' || user.username === 'chongzhengchai@gmail.com';
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
