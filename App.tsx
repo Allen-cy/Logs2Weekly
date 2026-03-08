@@ -19,7 +19,7 @@ import InboxView from './components/InboxView';
 import ArchiveView from './components/ArchiveView';
 import TodoView from './components/TodoView';
 import TodoReminderModal from './components/TodoReminderModal';
-import { Todo } from './types';
+import { Todo, TodoPriority } from './types';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('login');
@@ -77,11 +77,22 @@ const App: React.FC = () => {
     if (storedTodos) {
       try {
         const parsedTodos: Todo[] = JSON.parse(storedTodos);
-        setTodos(parsedTodos);
+
+        // 数据迁移：将旧的字符串优先级映射到新的枚举
+        const migratedTodos = parsedTodos.map(todo => {
+          if ((todo as any).priority === 'high') return { ...todo, priority: TodoPriority.P0 };
+          if ((todo as any).priority === 'medium') return { ...todo, priority: TodoPriority.P1 };
+          if ((todo as any).priority === 'low') return { ...todo, priority: TodoPriority.P3 };
+          // 如果没有优先级，默认设为 P3 (不重要不紧急)
+          if (!todo.priority) return { ...todo, priority: TodoPriority.P3 };
+          return todo;
+        });
+
+        setTodos(migratedTodos as Todo[]);
 
         // 检查是否有昨日或更早未完成的待办
         const today = new Date().toDateString();
-        const overdue = parsedTodos.filter(t => !t.completed && new Date(t.createdAt).toDateString() !== today);
+        const overdue = migratedTodos.filter(t => !t.completed && new Date(t.createdAt).toDateString() !== today);
         if (overdue.length > 0) {
           setOverdueTodos(overdue);
           setShowTodoReminder(true);
@@ -244,13 +255,14 @@ const App: React.FC = () => {
   };
 
   // 待办事项操作
-  const handleAddTodo = (content: string, listName: string) => {
+  const handleAddTodo = (content: string, listName: string, priority?: TodoPriority) => {
     const newTodo: Todo = {
       id: Date.now().toString(),
       content,
       completed: false,
       createdAt: new Date().toISOString(),
-      listName
+      listName,
+      priority: priority || TodoPriority.P3
     };
     setTodos([newTodo, ...todos]);
   };

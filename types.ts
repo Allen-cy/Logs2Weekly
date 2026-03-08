@@ -66,6 +66,13 @@ export type ViewMode = 'dashboard' | 'review' | 'setup' | 'login' | 'register' |
 
 export type TodoList = 'all' | 'today' | 'planned' | 'completed' | string;
 
+export enum TodoPriority {
+  P0 = 'P0', // 紧急且重要 (红色)
+  P1 = 'P1', // 重要不紧急 (橙色)
+  P2 = 'P2', // 紧急不重要 (绿色)
+  P3 = 'P3'  // 不紧急不重要 (灰色)
+}
+
 export interface Todo {
   id: string;
   content: string;
@@ -74,7 +81,7 @@ export interface Todo {
   createdAt: string;       // ISO date string
   dueDate?: string;        // 可选截止日期 ISO date string
   listName: string;        // 所属列表，默认 '临时待办'
-  priority?: 'high' | 'medium' | 'low';
+  priority?: TodoPriority;
   notes?: string;
   relatedLogId?: string; // 关联生成的日志 ID
 }
