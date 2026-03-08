@@ -12,6 +12,7 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   todoCount?: number;
+  onExportNotebookLM?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -23,7 +24,8 @@ const Header: React.FC<HeaderProps> = ({
   onOpenGuide,
   searchQuery,
   setSearchQuery,
-  todoCount
+  todoCount,
+  onExportNotebookLM
 }) => {
   return (
     <header className="bg-surface-dark/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-[100] shadow-md">
@@ -123,6 +125,17 @@ const Header: React.FC<HeaderProps> = ({
             >
               <span className="material-icons text-xl group-hover:rotate-12 transition-transform">help_outline</span>
             </button>
+
+            {onExportNotebookLM && (
+              <button
+                onClick={onExportNotebookLM}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-900/20 text-xs font-black transition-all"
+                title="导出所有记录并用作 Google NotebookLM 资料，写年终总结神器！"
+              >
+                <span className="material-icons text-sm">library_books</span>
+                导入 NotebookLM
+              </button>
+            )}
 
             <button
               onClick={() => setViewMode('profile')}

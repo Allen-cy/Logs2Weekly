@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ViewMode, LogEntry, WeeklySummary, LogType, LogStatus, AppConfig, User } from './types';
+import { ViewMode, LogEntry, WeeklySummary, LogType, LogStatus, AppConfig, User, Report } from './types';
 import { INITIAL_LOGS, INITIAL_SUMMARY } from './constants';
 import DashboardView from './components/DashboardView';
 import ReviewView from './components/ReviewView';
@@ -485,6 +485,71 @@ const App: React.FC = () => {
     }
   };
 
+  const handleExportNotebookLM = async () => {
+    let reportsData: any[] = [];
+    if (user) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/reports?user_id=${user.id}`);
+        if (response.ok) {
+          const res = await response.json();
+          if (res.data) reportsData = res.data;
+        }
+      } catch (err) {
+        console.error("Failed to fetch reports for export", err);
+      }
+    }
+
+    let content = `# 我的年度记录与待办汇总 (AI Productivity Hub 导出)\n\n`;
+    content += `生成时间：${new Date().toLocaleString()}\n\n`;
+    content += `> [!NOTE]\n> 请将此文档作为资料库（Source）上传至 Google NotebookLM，接着你就可以让 NotebookLM 帮你基于这些资料撰写你的年度总结 PPT 演讲稿了。\n\n`;
+
+    content += `## 📝 待办事项汇总\n`;
+    if (todos.length === 0) content += `暂无待办事项记录。\n`;
+    todos.forEach(t => {
+      content += `- [${t.completed ? 'x' : ' '}] ${t.content}\n  - 列表归属: ${t.listName}\n  - 优先级: ${t.priority}\n  - 创建时间: ${new Date(t.createdAt).toLocaleDateString()}\n`;
+      if (t.completedAt) content += `  - 完成时间: ${new Date(t.completedAt).toLocaleDateString()}\n`;
+    });
+
+    content += `\n## 📅 日常日志与笔记\n`;
+    if (logs.length === 0) content += `暂无日常日志记录。\n`;
+    logs.forEach(l => {
+      content += `### [${l.type === 'task' ? '任务' : l.type === 'note' ? '笔记' : 'AI 建议'}] - ${new Date(l.timestamp).toLocaleString()}\n`;
+      if (l.status) content += `> 状态: ${l.status === 'done' ? '已完成' : l.status === 'in_progress' ? '进行中' : '待处理'}\n`;
+      if (l.tags && l.tags.length > 0) content += `> 标签: ${l.tags.join(', ')}\n`;
+      content += `\n${l.content}\n\n`;
+    });
+
+    content += `\n## 📊 历史周报汇总\n`;
+    if (reportsData.length === 0) content += `暂无历史周报。\n`;
+    reportsData.forEach(r => {
+      content += `### 周报：${r.title} (${new Date(r.created_at).toLocaleDateString()})\n`;
+      content += `**执行摘要：** ${r.content.executiveSummary}\n\n`;
+      content += `**主要焦点：**\n`;
+      r.content.focusAreas.forEach(fa => content += `- ${fa.name}: ${fa.percentage}%\n`);
+      content += `\n**高光时刻：**\n`;
+      r.content.highlights.forEach(h => content += `- ${h.title}: ${h.description}\n`);
+      content += `\n**下周建议：**\n`;
+      r.content.nextWeekSuggestions?.forEach(s => content += `- ${s}\n`);
+      content += `\n---\n\n`;
+    });
+
+    try {
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `notebooklm-export-${new Date().getTime()}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert('✅ 已生成 Markdown 记录档案！\n\n你可以带上这份文件前往 NotebookLM，让它直接帮你起草【年终总结 PPT 演讲稿】等报告。');
+    } catch (e) {
+      console.error('Export failed', e);
+      alert('导出失败，请检查浏览器是否拦截了下载。');
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {user && (
@@ -498,6 +563,7 @@ const App: React.FC = () => {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           todoCount={todos.filter(t => !t.completed).length}
+          onExportNotebookLM={handleExportNotebookLM}
         />
       )}
 

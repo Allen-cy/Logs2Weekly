@@ -31,6 +31,80 @@ const TodoView: React.FC<TodoViewProps> = ({
     const [showSidebar, setShowSidebar] = useState(false);
     const [viewType, setViewType] = useState<'list' | 'quadrant'>('list');
     const [selectedPriority, setSelectedPriority] = useState<TodoPriority>(TodoPriority.P3);
+    const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState('');
+    const [editList, setEditList] = useState('');
+    const [editPriority, setEditPriority] = useState<TodoPriority>(TodoPriority.P3);
+
+    // 自定义列表状态
+    const [customLists, setCustomLists] = useState<string[]>(() => {
+        const saved = localStorage.getItem(`custom_todo_lists`);
+        return saved ? JSON.parse(saved) : ['工作', '学习', '健康', '临时待办'];
+    });
+
+    useEffect(() => {
+        localStorage.setItem(`custom_todo_lists`, JSON.stringify(customLists));
+    }, [customLists]);
+
+    // 开始编辑待办
+    const startEditing = (todo: Todo) => {
+        setEditingTodoId(todo.id);
+        setEditContent(todo.content);
+        setEditList(todo.listName);
+        setEditPriority(todo.priority || TodoPriority.P3);
+    };
+
+    // 保存编辑
+    const saveEdit = () => {
+        if (editingTodoId && editContent.trim()) {
+            onUpdateTodo(editingTodoId, {
+                content: editContent,
+                listName: editList,
+                priority: editPriority
+            });
+            setEditingTodoId(null);
+        }
+    };
+
+    // 新增列表
+    const handleAddList = () => {
+        const name = prompt("请输入新列表名称：");
+        if (name && name.trim() && !customLists.includes(name.trim())) {
+            setCustomLists([...customLists, name.trim()]);
+        }
+    };
+
+    // 修改列表名
+    const handleRenameList = (oldName: string) => {
+        const newName = prompt(`将列表 "${oldName}" 重命名为：`, oldName);
+        if (newName && newName.trim() && newName.trim() !== oldName && !customLists.includes(newName.trim())) {
+            setCustomLists(customLists.map(l => l === oldName ? newName.trim() : l));
+            // 更新所有属于旧列表的待办
+            todos.forEach(t => {
+                if (t.listName === oldName) {
+                    onUpdateTodo(t.id, { listName: newName.trim() });
+                }
+            });
+            if (activeList === oldName) {
+                setActiveList(newName.trim());
+            }
+        }
+    };
+
+    // 删除列表
+    const handleDeleteList = (name: string) => {
+        if (confirm(`确定要删除列表 "${name}" 吗？该列表下的待办将移至 "临时待办"。`)) {
+            setCustomLists(customLists.filter(l => l !== name));
+            todos.forEach(t => {
+                if (t.listName === name) {
+                    onUpdateTodo(t.id, { listName: '临时待办' });
+                }
+            });
+            if (activeList === name) {
+                setActiveList('all');
+            }
+        }
+    };
 
     // 恢复草稿
     useEffect(() => {
@@ -142,20 +216,34 @@ const TodoView: React.FC<TodoViewProps> = ({
             </div>
 
             <div className="mt-4">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">我的列表</h3>
+                <div className="flex items-center justify-between mb-4 ml-2 mr-2">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">我的列表</h3>
+                    <button onClick={handleAddList} className="text-slate-400 hover:text-white" title="新增列表">
+                        <span className="material-icons text-sm">add</span>
+                    </button>
+                </div>
                 <div className="space-y-1">
-                    {['工作', '学习', '健康', '临时待办'].map(name => (
-                        <button
-                            key={name}
-                            onClick={() => { setActiveList(name); setShowSidebar(false); }}
-                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeList === name ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <span className="material-icons text-lg opacity-70">list</span>
-                                <span className="text-sm font-bold">{name}</span>
+                    {customLists.map(name => (
+                        <div key={name} className="group relative">
+                            <button
+                                onClick={() => { setActiveList(name); setShowSidebar(false); }}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeList === name ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="material-icons text-lg opacity-70">list</span>
+                                    <span className="text-sm font-bold">{name}</span>
+                                </div>
+                                <span className="text-[10px] opacity-50 block group-hover:hidden border border-white/10 px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{todos.filter(t => t.listName === name && !t.completed).length}</span>
+                            </button>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-white/10 shadow-lg">
+                                <button onClick={(e) => { e.stopPropagation(); handleRenameList(name); }} className="p-1 text-slate-400 hover:text-primary transition-colors" title="重命名">
+                                    <span className="material-icons text-[14px]">edit</span>
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteList(name); }} className="p-1 text-slate-400 hover:text-danger transition-colors" title="删除">
+                                    <span className="material-icons text-[14px]">delete</span>
+                                </button>
                             </div>
-                            <span className="text-[10px] opacity-50">{todos.filter(t => t.listName === name && !t.completed).length}</span>
-                        </button>
+                        </div>
                     ))}
                 </div>
             </div>
@@ -230,31 +318,82 @@ const TodoView: React.FC<TodoViewProps> = ({
                                         </button>
 
                                         <div className="flex-1 min-w-0">
-                                            <p className={`text-sm text-white font-medium break-words ${todo.completed ? 'line-through text-slate-500' : ''}`}>
-                                                {todo.content}
-                                            </p>
-                                            {!todo.completed && (
-                                                <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500 font-bold">
-                                                    <span className="flex items-center gap-1">
-                                                        <span className="material-icons text-xs">calendar_today</span>
-                                                        {new Date(todo.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                    <span>·</span>
-                                                    <span>{todo.listName}</span>
-                                                    <span>·</span>
-                                                    <span className={PRIORITY_MAP[todo.priority || TodoPriority.P3].text}>
-                                                        {PRIORITY_MAP[todo.priority || TodoPriority.P3].label}
-                                                    </span>
+                                            {editingTodoId === todo.id ? (
+                                                <div className="flex flex-col gap-2 p-3 bg-white/5 rounded-xl border border-white/10 mt-1">
+                                                    <input
+                                                        type="text"
+                                                        value={editContent}
+                                                        onChange={(e) => setEditContent(e.target.value)}
+                                                        className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary w-full"
+                                                        placeholder="待办内容..."
+                                                        autoFocus
+                                                    />
+                                                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                                                        <select
+                                                            value={editList}
+                                                            onChange={(e) => setEditList(e.target.value)}
+                                                            className="bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-primary"
+                                                        >
+                                                            {customLists.map(l => <option key={l} value={l}>{l}</option>)}
+                                                            {!customLists.includes(editList) && <option value={editList}>{editList}</option>}
+                                                        </select>
+                                                        <div className="flex items-center gap-1 bg-black/20 rounded-lg p-1 border border-white/10">
+                                                            {(Object.entries(PRIORITY_MAP) as [TodoPriority, any][]).map(([p, info]) => (
+                                                                <button
+                                                                    key={p}
+                                                                    onClick={() => setEditPriority(p)}
+                                                                    className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${editPriority === p ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                                                                    title={info.label}
+                                                                >
+                                                                    <div className={`w-2 h-2 rounded-full ${info.color} ${editPriority === p ? 'scale-125' : 'opacity-50'}`}></div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <div className="flex-1"></div>
+                                                        <button onClick={() => setEditingTodoId(null)} className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-transparent hover:border-white/10 hover:bg-white/5 transition-all">取消</button>
+                                                        <button onClick={saveEdit} className="text-xs text-white bg-primary hover:brightness-110 px-4 py-1.5 rounded-lg shadow-lg shadow-primary/20 transition-all font-bold">保存</button>
+                                                    </div>
                                                 </div>
+                                            ) : (
+                                                <>
+                                                    <p className={`text-sm text-white font-medium break-words mt-0.5 ${todo.completed ? 'line-through text-slate-500' : ''}`}>
+                                                        {todo.content}
+                                                    </p>
+                                                    {!todo.completed && (
+                                                        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500 font-bold">
+                                                            <span className="flex items-center gap-1">
+                                                                <span className="material-icons text-[11px]">calendar_today</span>
+                                                                {new Date(todo.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5">{todo.listName}</span>
+                                                            <span className={`px-1.5 py-0.5 rounded bg-white/5 border border-white/5 flex items-center gap-1 ${PRIORITY_MAP[todo.priority || TodoPriority.P3].text}`}>
+                                                                <div className={`w-1.5 h-1.5 rounded-full ${PRIORITY_MAP[todo.priority || TodoPriority.P3].color}`}></div>
+                                                                {PRIORITY_MAP[todo.priority || TodoPriority.P3].label}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
 
-                                        <button
-                                            onClick={() => onDeleteTodo(todo.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-danger transition-all flex-shrink-0"
-                                        >
-                                            <span className="material-icons text-sm">delete</span>
-                                        </button>
+                                        {editingTodoId !== todo.id && (
+                                            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 flex-shrink-0 transition-opacity">
+                                                <button
+                                                    onClick={() => startEditing(todo)}
+                                                    className="p-2 text-slate-500 hover:text-primary transition-all rounded-lg hover:bg-primary/10"
+                                                    title="编辑待办属性"
+                                                >
+                                                    <span className="material-icons text-sm">edit</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => onDeleteTodo(todo.id)}
+                                                    className="p-2 text-slate-500 hover:text-danger transition-all rounded-lg hover:bg-danger/10"
+                                                    title="删除待办"
+                                                >
+                                                    <span className="material-icons text-sm">delete</span>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
