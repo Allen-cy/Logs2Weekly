@@ -19,7 +19,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ userId, onClose }) => {
         setStatus('idle');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/feedbacks`, {
+            const response = await fetch(`${API_BASE_URL}/feedbacks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId, content }),

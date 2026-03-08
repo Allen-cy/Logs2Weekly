@@ -20,7 +20,7 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
     const loadFeedbacks = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/feedbacks?user_id=${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/admin/feedbacks?user_id=${user.id}`);
             if (res.ok) {
                 const data = await res.json();
                 setFeedbacks(data);
@@ -35,7 +35,7 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
     const handleReply = async (targetUserId: number) => {
         if (!replyContent.trim()) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/reply?user_id=${user.id}`, {
+            const res = await fetch(`${API_BASE_URL}/admin/reply?user_id=${user.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ target_user_id: targetUserId, content: replyContent })
