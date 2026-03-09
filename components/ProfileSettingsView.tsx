@@ -136,8 +136,27 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                 <p className="text-white text-sm font-bold">已在云端持久化</p>
                             </div>
                             <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800">
-                                <p className="text-[10px] font-black text-slate-600 uppercase mb-1">系统版本</p>
-                                <p className="text-primary text-sm font-bold">v{APP_VERSION}</p>
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="text-[10px] font-black text-slate-600 uppercase">系统版本</p>
+                                    <span className="text-[9px] font-bold text-success bg-success/10 px-1.5 py-0.5 rounded cursor-default border border-success/20">Current</span>
+                                </div>
+                                <p className="text-primary text-sm font-bold mb-3">v{APP_VERSION}</p>
+                                <button
+                                    onClick={() => {
+                                        setIsUpdating(true);
+                                        // 模拟查更延迟，实际现在通过 UpdateHistoryModal 静态展示
+                                        setTimeout(() => {
+                                            setIsUpdating(false);
+                                            setShowUpdateHistory(true);
+                                            setMessage({ type: 'success', text: '正在获取最新版本信息...' });
+                                        }, 600);
+                                    }}
+                                    disabled={isUpdating}
+                                    className="w-full py-2.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-icons text-xs">refresh</span>
+                                    {isUpdating ? '检查中...' : '检查更新'}
+                                </button>
                             </div>
                         </div>
                     </div>
