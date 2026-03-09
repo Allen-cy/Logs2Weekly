@@ -241,3 +241,53 @@ Vercel 平台无法正确识别并托管我们的 Python FastAPI 后端，导致
 1. **构建与运行环境必须隔离**：云端部署环境与本地桌面构建环境的依赖池不可混用。
 2. **路径必须是动态的**：不要在代码（尤其是 `index.html` 的资源引用）中假设根路径是 `/`。
 3. **Electron 打包即修罗场**：打包后的寻址问题（`asar` 内部 vs 外部）应在开发早期就通过环境变量 `is_packaged` 进行分支处理。
+
+---
+
+## 🛑 战役六：Electron 自动化更新与 GitHub Release 草稿陷阱
+
+### 1. 问题的起点 (User Feedback)
+>
+> **用户反馈**：“客户端更新每次都要重新打包再安装，体验太差了。为什么即使配置了 GitHub Releases，但页面上根本看不到安装包？”
+
+### 2. 问题定义 (Problem Definition)
+
+应用桌面端缺乏有效的 Over-The-Air (OTA) 增量升级方案，迫使所有迭代都必须全量覆盖安装；在初步接入 `electron-updater` 后，执行构建并发布，但由于其内部机制导致了不可见的 Release，阻断了客户端的检测。
+
+### 3. 深度分析 (Analysis)
+
+- **更新机制的空缺**：原本的构建只产出全量的 `dmg`，并没有为内置升级准备底层的二进制补丁和清单。
+- **发布状态隐藏**：`electron-builder --publish always` 默认会将产物上传到 GitHub，但在该状态下，为防开发者未撰写 Release Notes，所有的 Release 默认被设为 **"Draft" (草稿)**。
+- 草稿状态的 Release 对于未提供鉴权的公共客户端 API 是 404 不可见的，这也同时导致下载按钮和 Updater 都读不到配置文件 (`latest-mac.yml`)。
+
+### 4. 解决过程 (Solving Process)
+
+1. **补全编译产物**：在 `electron-builder` (在 package.json 内的 mac.target) 的构建目标中添加了 `zip`。macOS 上的增量包 (`.blockmap`) 机制高度依赖 zip。保留 dmg 为冷启动下载，zip 供软件内补丁抓取。
+2. **主动改变发布属性**：为避开其默认设为草稿的安全机制，在 `publish` 配置对象中精准添加了 `"releaseType": "release"`，这使得 CLI 上传完毕后立刻将其转为对外公海可见。
+3. **UI 干预与静默处理**：
+   - 禁用自动强制下载并重启避免中断用户的书写流 (`autoUpdater.autoDownload = false`)。
+   - 使用 IPC 通道承接 `update-available`, `update-download-progress`, `update-downloaded` 信号，转移到 `App.tsx` 中的渲染层绘制弹窗和真实下载进度条，把决定权完全交给用户。
+
+### 5. 最终方案 (The Solution)
+
+- **构建层**：
+
+  ```json
+  "publish": [{
+    "provider": "github",
+    "owner": "Allen-cy",
+    "repo": "Logs2Weekly",
+    "releaseType": "release"
+  }],
+  "mac": {
+    "target": [{ "target": "dmg", "arch": ["arm64"] }, { "target": "zip", "arch": ["arm64"] }]
+  }
+  ```
+
+- **交互层 (App.tsx UI 截取)**：
+  主进程发现真时抛出数据，前端根据 `updateStatus` (available / downloading / downloaded) 提供“稍后”、“下载”、“立即重启”的分歧点与进度可视化。
+
+### 6. 经验总结 (Key Takeaways)
+
+1. **自动发布机制并非总是“所见即所得”**：很多 CLI 工具带有“未显式配置时保留草稿”的设定，查阅文档中关于 ReleaseType 的说明是破局点。
+2. **打断即为原罪**：对于工具类应用，软件更新绝不能在后台静默强制实施覆盖并导致重启（引发数据丢失与心流终止），把触发门槛下放到前端是尊重 UX 的体现。

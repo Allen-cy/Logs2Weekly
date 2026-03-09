@@ -142,4 +142,32 @@
 
 ---
 
+## 📅 2026-03-09 (Night)
+
+### [Feature & Experience] 任务：自定义全局热键、深度移动端适配与 OTA 自动更新 (v3.2.2)
+
+- **用户输入 (User Input)**:
+  > “1. 优化 UI 客户端自适应... 2. 热键不可用，设置默认双击或者 Option+M... 3. 客户端更新每次都要重新打包太麻烦了，有没有好方式实现增量更新并直接把 dmg 提交到 GitHub 上。”
+- **系统分析 (System Analysis)**:
+  - **热键逻辑与痛点**: `Alt+Space` 作为默认热键在很多系统被占用，且“双击”监听在 Electron 层面实现较厚重，折中取优选用 `Option+M (Alt+M)` 单手盲操。
+  - **UI 适配痛点**: 缩小边距、精简组件，在保留所有功能的前提下减少留白并提供专属的移动端折叠效果及极简底部 TabBar。
+  - **发版痛点 (OTA)**: 传统的重发流意味着漫长的解包与挂载覆盖。借肋 `electron-updater` 与 `electron-builder --publish always` 打通从推包到更新的一条龙静默通道。
+- **执行动作 (Actions Taken)**:
+  - **UI 与快捷键重构**:
+    - 全面替换 `App.tsx`、`main.ts` 中配置的默认全局热键设定，从 `Alt+Space` 切为 `Alt+M`。
+    - 大幅精简 `ProfileSettingsView` 卡片 padding 从 `10` 缩小到 `6`，边框圆角同步变小，适应小瓶。
+  - **Electron Auto-Updater 引入**:
+    - 安装 `electron-updater`，修改 `package.json` 的 `build.publish` 指向 Github 相关仓库。
+    - **双包并行**: Mac 提供打包目标数组 `["dmg", "zip"]`，dmg 用于用户首装，zip 供客户端进行底层文件补丁。
+  - **打断与恢复 (Draft Bugfix)**:
+    - 发现首个自动发送到 Github 的 Relase 处于 Draft（草稿）状态导致客户端更新监测 404，通过 `gh release edit v3.2.2 --draft=false` 手动修复。
+    - 添加 `"releaseType": "release"` 到配置确保下次永不陷于草稿限制。
+    - 在 `App.tsx` 植入暗黑系浮窗监听主进程 `update-download-progress` 并动态渲染下载条。
+- **结果验证 (Verification)**:
+  - 成功执行 `npm run build:electron` 连同打包到上传动作。
+  - Release 版在 GitHub 上正确可见，生成了带有对应的差分检验所需的 `blockmap`。
+  - Web 端由于已在 `package.json` 中配置了解耦，后续单纯网页发布仍会顺畅进行。
+
+---
+
 > **结语**: 每一项交互与决策将被完整保留。
