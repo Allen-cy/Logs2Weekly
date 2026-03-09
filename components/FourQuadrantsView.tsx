@@ -7,6 +7,7 @@ interface FourQuadrantsViewProps {
     onDeleteTodo: (id: string) => void;
     onUpdateTodo: (id: string, updates: Partial<Todo>) => void;
     onAddTodo: (content: string, listName: string, priority: TodoPriority) => void;
+    justCompletedIds?: Set<string>;
 }
 
 const PRIORITY_MAP = {
@@ -21,7 +22,8 @@ const FourQuadrantsView: React.FC<FourQuadrantsViewProps> = ({
     onToggleTodo,
     onDeleteTodo,
     onUpdateTodo,
-    onAddTodo
+    onAddTodo,
+    justCompletedIds = new Set()
 }) => {
     const quadrants = [
         { id: TodoPriority.P0, priority: TodoPriority.P0 },
@@ -76,7 +78,7 @@ const FourQuadrantsView: React.FC<FourQuadrantsViewProps> = ({
                                 quadTodos.map((todo) => (
                                     <div
                                         key={todo.id}
-                                        className={`group relative flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all ${todo.completed ? 'opacity-40 grayscale' : ''}`}
+                                        className={`group relative flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-500 ${justCompletedIds.has(todo.id) ? 'opacity-0 scale-90 translate-y-4' : ''} ${todo.completed ? 'opacity-40 grayscale' : ''}`}
                                     >
                                         <button
                                             onClick={() => onToggleTodo(todo.id)}

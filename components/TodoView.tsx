@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Todo, TodoList, TodoPriority } from '../types';
 import FourQuadrantsView from './FourQuadrantsView';
 
@@ -35,6 +35,7 @@ const TodoView: React.FC<TodoViewProps> = ({
     const [editContent, setEditContent] = useState('');
     const [editList, setEditList] = useState('');
     const [editPriority, setEditPriority] = useState<TodoPriority>(TodoPriority.P3);
+    const [justCompletedIds, setJustCompletedIds] = useState<Set<string>>(new Set());
 
     // 新增状态：替换 prompt 以避免闪退
     const [isAddingList, setIsAddingList] = useState(false);
@@ -137,27 +138,30 @@ const TodoView: React.FC<TodoViewProps> = ({
         }
     }, [newTodoInput, user?.id]);
 
+    // 归档核心逻辑：非"已完成"视图自动隐藏已完成的待办
     const filteredTodos = useMemo(() => {
-        let result = todos;
-        if (activeList === 'today') {
-            const today = new Date().toDateString();
-            result = todos.filter(t => new Date(t.createdAt).toDateString() === today);
-        } else if (activeList === 'planned') {
-            result = todos.filter(t => !!t.dueDate);
-        } else if (activeList === 'completed') {
-            result = todos.filter(t => t.completed);
-        } else if (activeList !== 'all') {
-            result = todos.filter(t => t.listName === activeList);
+        if (activeList === 'completed') {
+            // 「已完成」视图：只显示已完成的待办，按完成时间倒序
+            return todos
+                .filter(t => t.completed)
+                .sort((a, b) => new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime());
         }
 
-        const unfinished = result.filter(t => !t.completed).sort((a, b) =>
+        // 其他视图：只显示未完成的待办（已完成自动归档隐藏）
+        let result = todos.filter(t => !t.completed);
+
+        if (activeList === 'today') {
+            const today = new Date().toDateString();
+            result = result.filter(t => new Date(t.createdAt).toDateString() === today);
+        } else if (activeList === 'planned') {
+            result = result.filter(t => !!t.dueDate);
+        } else if (activeList !== 'all') {
+            result = result.filter(t => t.listName === activeList);
+        }
+
+        return result.sort((a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        const completed = result.filter(t => t.completed).sort((a, b) =>
-            new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime()
-        );
-
-        return [...unfinished, ...completed];
     }, [todos, activeList]);
 
     const handleAdd = (e: React.FormEvent) => {
@@ -173,12 +177,33 @@ const TodoView: React.FC<TodoViewProps> = ({
         }
     };
 
+    // 标记完成时的归档动画处理
+    const handleToggleWithAnimation = useCallback((id: string) => {
+        const todo = todos.find(t => t.id === id);
+        if (todo && !todo.completed) {
+            // 即将标记完成 -> 播放归档淡出动画
+            setJustCompletedIds(prev => new Set(prev).add(id));
+            setTimeout(() => {
+                onToggleTodo(id);
+                setJustCompletedIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                });
+            }, 500);
+        } else {
+            // 取消完成 -> 直接 toggle
+            onToggleTodo(id);
+        }
+    }, [todos, onToggleTodo]);
+
     const listCounts = useMemo(() => {
         const today = new Date().toDateString();
+        const activeTodos = todos.filter(t => !t.completed);
         return {
-            all: todos.length,
-            today: todos.filter(t => new Date(t.createdAt).toDateString() === today).length,
-            planned: todos.filter(t => !!t.dueDate).length,
+            all: activeTodos.length,
+            today: activeTodos.filter(t => new Date(t.createdAt).toDateString() === today).length,
+            planned: activeTodos.filter(t => !!t.dueDate).length,
             completed: todos.filter(t => t.completed).length,
         };
     }, [todos]);
@@ -346,8 +371,8 @@ const TodoView: React.FC<TodoViewProps> = ({
 
                 {viewType === 'quadrant' ? (
                     <FourQuadrantsView
-                        todos={todos}
-                        onToggleTodo={onToggleTodo}
+                        todos={filteredTodos}
+                        onToggleTodo={handleToggleWithAnimation}
                         onDeleteTodo={onDeleteTodo}
                         onUpdateTodo={onUpdateTodo}
                         onAddTodo={onAddTodo}
@@ -355,16 +380,29 @@ const TodoView: React.FC<TodoViewProps> = ({
                 ) : (
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <div className="flex-1 overflow-y-auto px-6 lg:px-8 space-y-px">
+                            {filteredTodos.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                                    <span className="material-icons text-5xl mb-4 opacity-30">
+                                        {activeList === 'completed' ? 'task_alt' : 'inbox'}
+                                    </span>
+                                    <p className="text-sm font-bold">
+                                        {activeList === 'completed' ? '暂无已完成的待办' : '当前没有待办事项'}
+                                    </p>
+                                    <p className="text-xs mt-1 opacity-60">
+                                        {activeList === 'completed' ? '完成的待办会自动归档到这里' : '在下方添加新的待办吧'}
+                                    </p>
+                                </div>
+                            )}
                             {filteredTodos.map((todo) => (
                                 <div
                                     key={todo.id}
-                                    className={`group flex items-start gap-4 py-3 border-b border-white/5 transition-all ${todo.completed ? 'opacity-40' : ''}`}
+                                    className={`group flex items-start gap-4 py-3 border-b border-white/5 transition-all duration-500 ${justCompletedIds.has(todo.id) ? 'opacity-0 translate-x-8 scale-95' : ''} ${todo.completed ? 'opacity-60' : ''}`}
                                 >
                                     <div className="relative flex items-start gap-4 flex-1">
                                         <div className={`absolute -left-4 top-1 bottom-1 w-1 rounded-full ${PRIORITY_MAP[todo.priority || TodoPriority.P3].color}`}></div>
 
                                         <button
-                                            onClick={() => onToggleTodo(todo.id)}
+                                            onClick={() => handleToggleWithAnimation(todo.id)}
                                             className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${todo.completed ? 'bg-primary border-primary text-white' : 'border-slate-700 hover:border-primary/50'}`}
                                         >
                                             {todo.completed && <span className="material-icons text-[14px]">check</span>}
@@ -412,19 +450,29 @@ const TodoView: React.FC<TodoViewProps> = ({
                                                     <p className={`text-sm text-white font-medium break-words mt-0.5 ${todo.completed ? 'line-through text-slate-500' : ''}`}>
                                                         {todo.content}
                                                     </p>
-                                                    {!todo.completed && (
-                                                        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500 font-bold">
-                                                            <span className="flex items-center gap-1">
-                                                                <span className="material-icons text-[11px]">calendar_today</span>
-                                                                {new Date(todo.createdAt).toLocaleDateString()}
-                                                            </span>
-                                                            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5">{todo.listName}</span>
-                                                            <span className={`px-1.5 py-0.5 rounded bg-white/5 border border-white/5 flex items-center gap-1 ${PRIORITY_MAP[todo.priority || TodoPriority.P3].text}`}>
-                                                                <div className={`w-1.5 h-1.5 rounded-full ${PRIORITY_MAP[todo.priority || TodoPriority.P3].color}`}></div>
-                                                                {PRIORITY_MAP[todo.priority || TodoPriority.P3].label}
-                                                            </span>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500 font-bold flex-wrap">
+                                                        {todo.completed && todo.completedAt ? (
+                                                            <>
+                                                                <span className="flex items-center gap-1 text-green-500/70">
+                                                                    <span className="material-icons text-[11px]">check_circle</span>
+                                                                    {new Date(todo.completedAt).toLocaleDateString()} 完成
+                                                                </span>
+                                                                <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5">{todo.listName}</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span className="flex items-center gap-1">
+                                                                    <span className="material-icons text-[11px]">calendar_today</span>
+                                                                    {new Date(todo.createdAt).toLocaleDateString()}
+                                                                </span>
+                                                                <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5">{todo.listName}</span>
+                                                                <span className={`px-1.5 py-0.5 rounded bg-white/5 border border-white/5 flex items-center gap-1 ${PRIORITY_MAP[todo.priority || TodoPriority.P3].text}`}>
+                                                                    <div className={`w-1.5 h-1.5 rounded-full ${PRIORITY_MAP[todo.priority || TodoPriority.P3].color}`}></div>
+                                                                    {PRIORITY_MAP[todo.priority || TodoPriority.P3].label}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </>
                                             )}
                                         </div>

@@ -25,7 +25,18 @@ import NotificationToast from './components/NotificationToast';
 import { Todo, TodoPriority } from './types';
 
 const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('login');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    // 基础防御：如果本地没有用户信息，强制重定向到登录页
+    const hasUser = localStorage.getItem('user');
+    if (!hasUser) return 'login';
+    return (localStorage.getItem('viewMode') as ViewMode) || 'dashboard';
+  });
+
+  useEffect(() => {
+    if (viewMode !== 'login' && viewMode !== 'register') {
+      localStorage.setItem('viewMode', viewMode);
+    }
+  }, [viewMode]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [summary, setSummary] = useState<WeeklySummary>(INITIAL_SUMMARY);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -79,7 +90,13 @@ const App: React.FC = () => {
         const parsedUser = JSON.parse(storedUser);
         if (parsedUser && parsedUser.id) {
           setUser(parsedUser);
-          setViewMode('dashboard');
+
+          const savedMode = localStorage.getItem('viewMode') as ViewMode;
+          if (savedMode && ['dashboard', 'todos', 'review', 'profile', 'messages', 'inbox', 'archive', 'history', 'insights', 'setup'].includes(savedMode)) {
+            setViewMode(savedMode);
+          } else {
+            setViewMode('dashboard');
+          }
 
           // 检查是否显示新版本更新日志
           const lastSeenVersion = localStorage.getItem('lastSeenVersion');

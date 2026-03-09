@@ -42,6 +42,8 @@ async def perform_user_aggregation(user_id: int):
         response = client.table("logs").select("*")\
             .eq("user_id", user_id)\
             .eq("is_processed", False)\
+            .neq("type", "notification")\
+            .neq("type", "feedback")\
             .gte("timestamp", today_start)\
             .execute()
         
