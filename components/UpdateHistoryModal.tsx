@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.2.1';
+export const APP_VERSION = '3.2.2';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.2.2',
+        date: '2026-03-09',
+        features: [
+            { icon: 'tune', title: '默认热键调整', desc: '全局唤起热键默认值改为 Option+M (Alt+M)，单手即可完成盲操，效率与肌肉记忆兼得。' },
+            { icon: 'phone_iphone', title: '移动端布局精修', desc: '全面优化了小屏幕下的导航栏、底部标签页、输入区域和卡片间距，手机端体验更丝滑。' },
+            { icon: 'desktop_windows', title: '桌面端宽屏适配', desc: '进一步精调了 13 寸到 27 寸屏幕的控件尺寸比例，让每一寸空间都物尽其用。' }
+        ]
+    },
     {
         version: '3.2.1',
         date: '2026-03-09',
