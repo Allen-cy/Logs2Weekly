@@ -6,7 +6,7 @@ import ReviewView from './components/ReviewView';
 import Header from './components/Header';
 import SetupView from './components/SetupView';
 import ProfileSettingsView from './components/ProfileSettingsView';
-import { generateWeeklyReport, fetchLogs, saveLog, deleteLog, fetchTodos, saveTodo, updateTodo as apiUpdateTodo, deleteTodo as apiDeleteTodo } from './aiService';
+import { generateWeeklyReport, fetchLogs, saveLog, deleteLog, fetchTodos, saveTodo, updateTodo as apiUpdateTodo, deleteTodo as apiDeleteTodo, suggestTags } from './aiService';
 
 import RegisterView from './components/RegisterView';
 import LoginView from './components/LoginView';
@@ -58,6 +58,31 @@ const App: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotificationToast, setShowNotificationToast] = useState(false);
   const [showFeedbackFromMessages, setShowFeedbackFromMessages] = useState(false);
+  const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
+
+  const handleSuggestTags = async (content: string) => {
+    return await suggestTags(content, config);
+  };
+
+  // 监听桌面端置顶状态变化（来自托盘菜单）
+  useEffect(() => {
+    if ((window as any).ipcRenderer) {
+      const cleanup = (window as any).ipcRenderer.on('always-on-top-changed', (flag: boolean) => {
+        setIsAlwaysOnTop(flag);
+      });
+      return () => {
+        if (typeof cleanup === 'function') cleanup();
+      };
+    }
+  }, []);
+
+  const handleToggleAlwaysOnTop = () => {
+    const newState = !isAlwaysOnTop;
+    setIsAlwaysOnTop(newState);
+    if ((window as any).ipcRenderer) {
+      (window as any).ipcRenderer.send('toggle-always-on-top', newState);
+    }
+  };
 
   const handleLoginSuccess = (loggedInUser: User) => {
     localStorage.setItem('user', JSON.stringify(loggedInUser));
@@ -609,6 +634,8 @@ const App: React.FC = () => {
           todoCount={todos.filter(t => !t.completed).length}
           onExportNotebookLM={handleExportNotebookLM}
           onOpenFeedback={() => setShowFeedbackFromMessages(true)}
+          isAlwaysOnTop={isAlwaysOnTop}
+          onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
         />
       )}
 
@@ -707,6 +734,7 @@ const App: React.FC = () => {
             onViewArchive={() => setViewMode('archive')}
             retentionDays={config.archiveRetentionDays}
             searchQuery={searchQuery}
+            onSuggestTags={handleSuggestTags}
           />
         )}
 

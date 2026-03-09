@@ -1,33 +1,63 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, globalShortcut, Menu, Tray, nativeImage, ipcMain } from 'electron'
 import path from 'node:path'
 
-// __dirname is natively available in CJS
-
 // The built directory structure
-//
-// ├─┬─┬ dist
-// │ │ └── index.html
-// │ │
-// │ ├─┬ dist-electron
-// │ │ ├── main.js
-// │ │ └── preload.js
-// │
 process.env.APP_ROOT = path.join(__dirname, '..')
 
-// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-let win: any | null
+let win: BrowserWindow | null = null
+let tray: Tray | null = null
+let isQuitting = false
+
+function createTray() {
+    const iconPath = path.join(process.env.VITE_PUBLIC, 'pwa-192x192.png')
+    const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
+
+    tray = new Tray(icon)
+    const contextMenu = Menu.buildFromTemplate([
+        { label: '显示窗口', click: () => win?.show() },
+        {
+            label: '置顶模式',
+            type: 'checkbox',
+            checked: win?.isAlwaysOnTop(),
+            click: (item) => {
+                win?.setAlwaysOnTop(item.checked)
+                win?.webContents.send('always-on-top-changed', item.checked)
+            }
+        },
+        { type: 'separator' },
+        {
+            label: '彻底退出', click: () => {
+                isQuitting = true;
+                app.quit();
+            }
+        }
+    ])
+
+    tray.setToolTip('Logs2Weekly')
+    tray.setContextMenu(contextMenu)
+
+    tray.on('click', () => {
+        if (win?.isVisible()) {
+            win.hide()
+        } else {
+            win?.show()
+            win?.focus()
+        }
+    })
+}
 
 function createWindow() {
     win = new BrowserWindow({
         width: 1200,
         height: 800,
         titleBarStyle: 'hiddenInset',
+        icon: path.join(process.env.VITE_PUBLIC, 'pwa-192x192.png'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
@@ -38,7 +68,6 @@ function createWindow() {
 
     // win.webContents.openDevTools()
 
-    // Test active push message to Renderer-process.
     win.webContents.on('did-finish-load', () => {
         const indexPath = path.join(RENDERER_DIST, 'index.html')
         console.log('App loaded from:', indexPath)
@@ -50,26 +79,72 @@ function createWindow() {
     } else {
         win.loadFile(path.join(RENDERER_DIST, 'index.html'))
     }
+
+    // MacOS tray behavior: close means hide
+    win.on('close', (event) => {
+        if (!isQuitting && process.platform === 'darwin') {
+            event.preventDefault()
+            win?.hide()
+        }
+        return false
+    })
 }
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+function registerGlobalShortcuts() {
+    globalShortcut.register('Alt+Space', () => {
+        if (!win) return
+        if (win.isVisible() && win.isFocused()) {
+            win.hide()
+        } else {
+            win.show()
+            win.focus()
+            win.webContents.send('focus-add-log', true)
+        }
+    })
+}
+
+ipcMain.on('toggle-always-on-top', (_event, flag) => {
+    win?.setAlwaysOnTop(flag)
+    // Sync tray menu
+    if (tray) {
+        const contextMenu = Menu.buildFromTemplate([
+            { label: '显示窗口', click: () => win?.show() },
+            {
+                label: '置顶模式',
+                type: 'checkbox',
+                checked: flag,
+                click: (item) => {
+                    win?.setAlwaysOnTop(item.checked)
+                    win?.webContents.send('always-on-top-changed', item.checked)
+                }
+            },
+            { type: 'separator' },
+            { label: '彻底退出', click: () => { isQuitting = true; app.quit(); } }
+        ])
+        tray.setContextMenu(contextMenu)
+    }
+})
+
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit()
-        win = null
     }
 })
 
 app.on('activate', () => {
-    // On OS X it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow()
+    } else {
+        win?.show()
     }
 })
 
 app.whenReady().then(() => {
     createWindow()
+    createTray()
+    registerGlobalShortcuts()
+})
+
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll()
 })

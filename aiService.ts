@@ -129,3 +129,26 @@ export const deleteTodo = async (todoId: string, userId: number): Promise<{ succ
     });
     return await response.json();
 };
+
+export const suggestTags = async (content: string, config: AppConfig): Promise<string[]> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/suggest-tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content,
+                model_type: config.provider,
+                model_name: config.modelName,
+                api_key: config.apiKey
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.tags || [];
+        }
+        return [];
+    } catch (err) {
+        console.error("Suggest tags error", err);
+        return [];
+    }
+};

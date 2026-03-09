@@ -14,6 +14,8 @@ interface HeaderProps {
   todoCount?: number;
   onExportNotebookLM?: () => void;
   onOpenFeedback?: () => void;
+  isAlwaysOnTop?: boolean;
+  onToggleAlwaysOnTop?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -27,7 +29,9 @@ const Header: React.FC<HeaderProps> = ({
   setSearchQuery,
   todoCount,
   onExportNotebookLM,
-  onOpenFeedback
+  onOpenFeedback,
+  isAlwaysOnTop,
+  onToggleAlwaysOnTop
 }) => {
   return (
     <header className="bg-surface-dark/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-[100] shadow-md">
@@ -135,6 +139,16 @@ const Header: React.FC<HeaderProps> = ({
                 title="吐槽与建议"
               >
                 <span className="material-icons text-xl group-hover:scale-110 transition-transform">campaign</span>
+              </button>
+            )}
+
+            {onToggleAlwaysOnTop && (
+              <button
+                onClick={onToggleAlwaysOnTop}
+                className={`w-10 h-10 rounded-xl border transition-all flex items-center justify-center group ${isAlwaysOnTop ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20' : 'border-slate-800 text-slate-400 hover:text-amber-500 hover:border-amber-500/30'}`}
+                title={isAlwaysOnTop ? "取消置顶" : "置顶窗口"}
+              >
+                <span className={`material-icons text-xl ${isAlwaysOnTop ? 'rotate-45' : ''} transition-transform`}>push_pin</span>
               </button>
             )}
 

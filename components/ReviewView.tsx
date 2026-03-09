@@ -55,14 +55,45 @@ ${summary.executiveSummary}
 - 深度工作时间: ${summary.pulseStats.deepWorkHours}h
 
 ## 本周重点
-${summary.highlights.map(h => `### ${h.title} (${h.category})\n${h.description}`).join('\n\n')}
+${summary.highlights.map(h => `### ${h.title} (${h.category})\n- **时间**: ${h.timestamp}\n- **分类**: ${h.category}\n\n${h.description}`).join('\n\n')}
 
 ## 下周建议
 ${summary.nextWeekSuggestions?.map(s => `- ${s}`).join('\n')}
     `.trim();
 
     navigator.clipboard.writeText(md);
-    alert("Markdown 已复制到剪贴板");
+    alert("Markdown 已复制到剪贴板，可直接粘贴至 Obsidian/Notion");
+  };
+
+  const handleDownloadMarkdown = () => {
+    const md = `---
+title: ${new Date().toLocaleDateString('zh-CN')} 周总结报告
+author: ${user?.username || 'User'}
+date: ${new Date().toISOString()}
+tags: [log2weekly, review, ai-generated]
+---
+
+# AI 执行摘要
+${summary.executiveSummary}
+
+## 核心指标
+- 已完成任务: ${summary.pulseStats.completed}
+- 深度工作时间: ${summary.pulseStats.deepWorkHours}h
+
+## 本周重点
+${summary.highlights.map(h => `### ${h.title} (${h.category})\n- **时间**: ${h.timestamp}\n- **分类**: ${h.category}\n\n${h.description}`).join('\n\n')}
+
+## 下周建议
+${summary.nextWeekSuggestions?.map(s => `- ${s}`).join('\n')}
+    `.trim();
+
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Log2Weekly_Review_${new Date().toISOString().split('T')[0]}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -75,6 +106,13 @@ ${summary.nextWeekSuggestions?.map(s => `- ${s}`).join('\n')}
           >
             <span className="material-icons text-sm">content_copy</span>
             复制 Markdown
+          </button>
+          <button
+            onClick={handleDownloadMarkdown}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-bold border border-slate-700 transition-all"
+          >
+            <span className="material-icons text-sm">file_download</span>
+            下载 (.md)
           </button>
           <button
             onClick={handleSaveToHistory}
