@@ -22,6 +22,15 @@
   - [x] 列表页优先级指示灯显示
   - [x] 艾森豪威尔矩阵 (Eisenhower Matrix) 象限视图
   - [x] 象限视图 CRUD 与状态同步
+- [x] **V6.0: 跨平台桌面客户端 (Electron)**
+  - [x] macOS ARM64 深度适配 (Apple Silicon M1/M2/M3)
+  - [x] 桌面版独立环境变量与寻址逻辑封装
+  - [x] 构建脚本解耦 (Web build vs Desktop build)
+  - [x] 解决 Vercel 环境下的生产部署路径寻址报错
+- [x] **V3.1.2: 全量版本同步与广播系统**
+  - [x] 多端视图状态持久化 (View Persistence)
+  - [x] 基于 Supabase 的管理员全局广播能力
+  - [x] UI 全局版本号 (V3.1.2) 实时化同步展示
 
 ## 2. 鉴权模块 (Authentication)
 

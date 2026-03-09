@@ -191,3 +191,53 @@ Vercel 平台无法正确识别并托管我们的 Python FastAPI 后端，导致
 1. **Don't Trust User Input**：永远不要假设用户填写的 Key 是对的，必须现场试运行。
 2. **Error Messages Matter**：告诉用户“配额满了”比告诉用户“服务器错误 500”有用一万倍。
 3. **SDK Isolation**：不同厂商使用其官方/推荐的 SDK（如 Gemini 用 `google-genai`，Kimi 用 `openai`），比强行用一套通用的 HTTP 请求更稳定，也能获取更详细的错误堆栈。
+
+---
+
+## 🛑 战役五：Electron 跨端集成与路径寻址悖论
+
+### 1. 问题的起点 (User Feedback)
+>
+> **用户反馈**：“开发桌面版后，网页打开黑盘，或者刷新页面后提示无法访问子网站。”
+
+### 2. 问题定义 (Problem Definition)
+
+项目在引入 Electron 桌面环境后，Web 端的“路径寻址逻辑”与桌面端的“本地文件寻址逻辑”产生了根本冲突。
+
+### 3. 深度分析 (Analysis)
+
+- **根路径冲突**：Web 端（如 Vercel）通常部署在 `/` 根路径。而 Electron 在打包后，静态资源是通过 `file://` 协议加载的。Vite 默认生成的绝对路径（如 `/assets/...`）在桌面端会指向系统根目录，导致资源加载 404。
+- **构建环境耦合**：原有的 `npm run build` 同时包含了针对网页的优化和针对 Electron 的打包。在 Vercel 这种 Linux/Web 环境下，调用 `electron-builder` 会因为缺少 wine 或桌面环境依赖而报错。
+- **刷新失效**：刷新页面时，单页应用 (SPA) 的路由如果不是 `HashRouter`，在没有配置服务器重定向的情况下，浏览器会尝试请求对应的静态路径，导致网页端 404。
+
+### 4. 解决过程 (Solving Process)
+
+1. **动态路径感知**：在 `vite.config.ts` 中通过环境变量 `VITE_ELECTRON` 动态切换 `base` 为 `./` (相对路径) 或 `/` (绝对路径)。
+2. **构建脚本分流**：将 `package.json` 中的 `build` 与 `build:electron` 彻底声明式解耦。Vercel 仅执行纯 Web 构建，Electron 仅在本地开发机执行。
+3. **路由模式修正**：由于 Electron 不支持 `BrowserRouter` 的 HTML5 PushState，项目在桌面模式下通过动态判断注入了兼容性更强的路由兜底逻辑。
+
+### 5. 最终方案 (The Solution)
+
+- **Vite 配置优化**：
+
+  ```typescript
+  // vite.config.ts
+  export default defineConfig({
+    base: process.env.VITE_ELECTRON ? './' : '/',
+    // ...
+  })
+  ```
+
+- **构建脚本解耦**：
+
+  ```json
+  // package.json
+  "build": "vite build",
+  "build:electron": "vite build && electron-builder"
+  ```
+
+### 6. 经验总结 (Key Takeaways)
+
+1. **构建与运行环境必须隔离**：云端部署环境与本地桌面构建环境的依赖池不可混用。
+2. **路径必须是动态的**：不要在代码（尤其是 `index.html` 的资源引用）中假设根路径是 `/`。
+3. **Electron 打包即修罗场**：打包后的寻址问题（`asar` 内部 vs 外部）应在开发早期就通过环境变量 `is_packaged` 进行分支处理。
