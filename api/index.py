@@ -644,7 +644,7 @@ class FeedbackEntry(BaseModel):
 class AdminReplyRequest(BaseModel):
     target_user_id: int
     content: str
-    feedback_id: Optional[str] = None
+    feedback_id: Optional[int] = None
 
 @app.post("/api/feedbacks")
 async def submit_feedback(feedback: FeedbackEntry):
@@ -690,7 +690,7 @@ async def admin_reply(req: AdminReplyRequest, user_id: int = Query(...)):
             "tags": ["system_reply"]
         }
         if req.feedback_id:
-            notify_data["parent_id"] = str(req.feedback_id)
+            notify_data["parent_id"] = req.feedback_id
             
         response = client.table("logs").insert(notify_data).execute()
         
@@ -702,6 +702,17 @@ async def admin_reply(req: AdminReplyRequest, user_id: int = Query(...)):
     except Exception as e:
         print(f"Reply user error: {e}")
         raise HTTPException(status_code=500, detail="发送通知失败")
+
+@app.post("/api/admin/adopt-feedback")
+async def adopt_feedback(feedback_id: int = Query(...), user_id: int = Query(...)):
+    """管理员将反馈标记为已采纳"""
+    try:
+        client = get_supabase()
+        client.table("logs").update({"status": "adopted"}).eq("id", feedback_id).execute()
+        return {"success": True}
+    except Exception as e:
+        print(f"Adopt feedback error: {e}")
+        raise HTTPException(status_code=500, detail="标记采纳失败")
 
 # --- 消息管理 ---
 

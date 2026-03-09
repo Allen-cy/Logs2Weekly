@@ -182,8 +182,11 @@ const MessagesView: React.FC<MessagesViewProps> = ({ user, onBack, onOpenFeedbac
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">我的反馈</span>
-                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${f.status === 'pending' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' : 'text-green-500 bg-green-500/10 border-green-500/20'}`}>
-                                                    {f.status === 'pending' ? '待回复' : '已回复'}
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${f.status === 'pending' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' :
+                                                        f.status === 'adopted' ? 'text-green-500 bg-green-500/10 border-green-500/20' :
+                                                            'text-blue-500 bg-blue-500/10 border-blue-500/20'
+                                                    }`}>
+                                                    {f.status === 'pending' ? '待回复' : f.status === 'adopted' ? '已采纳' : '已回复'}
                                                 </span>
                                                 <span className="text-[10px] text-slate-600 ml-auto">{formatTime(f.timestamp)}</span>
                                             </div>

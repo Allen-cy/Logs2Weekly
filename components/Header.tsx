@@ -13,6 +13,7 @@ interface HeaderProps {
   setSearchQuery: (q: string) => void;
   todoCount?: number;
   onExportNotebookLM?: () => void;
+  onOpenFeedback?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -25,7 +26,8 @@ const Header: React.FC<HeaderProps> = ({
   searchQuery,
   setSearchQuery,
   todoCount,
-  onExportNotebookLM
+  onExportNotebookLM,
+  onOpenFeedback
 }) => {
   return (
     <header className="bg-surface-dark/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-[100] shadow-md">
@@ -125,6 +127,16 @@ const Header: React.FC<HeaderProps> = ({
             >
               <span className="material-icons text-xl group-hover:rotate-12 transition-transform">help_outline</span>
             </button>
+
+            {onOpenFeedback && (
+              <button
+                onClick={onOpenFeedback}
+                className="w-10 h-10 rounded-xl border border-slate-800 text-slate-400 hover:text-amber-500 hover:border-amber-500/30 transition-all flex items-center justify-center group"
+                title="吐槽与建议"
+              >
+                <span className="material-icons text-xl group-hover:scale-110 transition-transform">campaign</span>
+              </button>
+            )}
 
             {onExportNotebookLM && (
               <button

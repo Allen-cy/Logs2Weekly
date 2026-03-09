@@ -591,6 +591,7 @@ const App: React.FC = () => {
           setSearchQuery={setSearchQuery}
           todoCount={todos.filter(t => !t.completed).length}
           onExportNotebookLM={handleExportNotebookLM}
+          onOpenFeedback={() => setShowFeedbackFromMessages(true)}
         />
       )}
 

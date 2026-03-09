@@ -46,10 +46,40 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
                 setReplyingTo(null);
                 loadFeedbacks();
             } else {
-                alert('发送失败，请重试');
+                const errData = await res.json().catch(() => ({}));
+                alert(`发送失败: ${errData.detail || '请重试'}`);
             }
         } catch (e) {
             console.error(e);
+            alert('网络错误，请重试');
+        }
+    };
+
+    const handleAdopt = async (feedbackId: number | string) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/adopt-feedback?feedback_id=${feedbackId}&user_id=${user.id}`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                loadFeedbacks();
+            } else {
+                alert('操作失败，请重试');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return <span className="px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">待处理</span>;
+            case 'replied':
+                return <span className="px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20">已回复</span>;
+            case 'adopted':
+                return <span className="px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-green-500/10 text-green-500 border border-green-500/20">已采纳</span>;
+            default:
+                return <span className="px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-slate-500/10 text-slate-500">{status}</span>;
         }
     };
 
@@ -79,12 +109,10 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
                             <div key={fb.id} className="bg-slate-900/50 border border-white/5 rounded-2xl p-6">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
-                                        <div className="text-xs text-primary font-bold">{fb.users?.email || 'Unknown User'}</div>
+                                        <div className="text-xs text-primary font-bold">{fb.users?.email || fb.users?.username || 'Unknown User'}</div>
                                         <div className="text-[10px] text-slate-500 mt-1">{new Date(fb.timestamp).toLocaleString()}</div>
                                     </div>
-                                    <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${fb.status === 'pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'}`}>
-                                        {fb.status === 'pending' ? '待回复' : '已处理'}
-                                    </span>
+                                    {getStatusBadge(fb.status)}
                                 </div>
                                 <div className="text-white text-sm bg-slate-950/50 p-4 rounded-xl mb-4 leading-relaxed">
                                     {fb.content}
@@ -96,7 +124,7 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
                                             value={replyContent}
                                             onChange={e => setReplyContent(e.target.value)}
                                             className="w-full bg-black/30 border border-amber-500/30 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-amber-500 resize-none h-24"
-                                            placeholder={`发送系统消息给 ${fb.users?.email}...`}
+                                            placeholder={`发送系统消息给 ${fb.users?.email || fb.users?.username}...`}
                                         />
                                         <div className="flex justify-end gap-3">
                                             <button onClick={() => setReplyingTo(null)} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors">取消</button>
@@ -110,14 +138,32 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex justify-end mt-2">
+                                    <div className="flex justify-end mt-2 gap-3">
                                         {fb.status === 'pending' && (
+                                            <>
+                                                <button
+                                                    onClick={() => { setReplyingTo(fb.id); setReplyContent(''); }}
+                                                    className="text-xs text-amber-500 font-bold hover:text-amber-400 flex items-center gap-1"
+                                                >
+                                                    <span className="material-icons text-[14px]">reply</span>
+                                                    回复用户
+                                                </button>
+                                                <button
+                                                    onClick={() => handleAdopt(fb.id)}
+                                                    className="text-xs text-green-500 font-bold hover:text-green-400 flex items-center gap-1"
+                                                >
+                                                    <span className="material-icons text-[14px]">check_circle</span>
+                                                    采纳建议
+                                                </button>
+                                            </>
+                                        )}
+                                        {fb.status === 'replied' && (
                                             <button
-                                                onClick={() => { setReplyingTo(fb.id); setReplyContent(''); }}
-                                                className="text-xs text-amber-500 font-bold hover:text-amber-400 flex items-center gap-1"
+                                                onClick={() => handleAdopt(fb.id)}
+                                                className="text-xs text-green-500 font-bold hover:text-green-400 flex items-center gap-1"
                                             >
-                                                <span className="material-icons text-[14px]">reply</span>
-                                                回复用户
+                                                <span className="material-icons text-[14px]">check_circle</span>
+                                                采纳建议
                                             </button>
                                         )}
                                     </div>
