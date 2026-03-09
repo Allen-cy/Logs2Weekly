@@ -90,18 +90,38 @@ function createWindow() {
     })
 }
 
-function registerGlobalShortcuts() {
-    globalShortcut.register('Alt+Space', () => {
-        if (!win) return
-        if (win.isVisible() && win.isFocused()) {
-            win.hide()
+let currentHotkey = 'Alt+Space'
+
+function registerGlobalShortcuts(hotkey: string = 'Alt+Space') {
+    try {
+        globalShortcut.unregisterAll()
+        const success = globalShortcut.register(hotkey, () => {
+            if (!win) return
+            if (win.isVisible() && win.isFocused()) {
+                win.hide()
+            } else {
+                win.show()
+                win.focus()
+                win.webContents.send('focus-add-log', true)
+            }
+        })
+        if (success) {
+            currentHotkey = hotkey
+            console.log(`Global shortcut registered: ${hotkey}`)
         } else {
-            win.show()
-            win.focus()
-            win.webContents.send('focus-add-log', true)
+            console.error(`Failed to register shortcut: ${hotkey}`)
         }
-    })
+        return success
+    } catch (e) {
+        console.error('Error registering shortcut', e)
+        return false
+    }
 }
+
+ipcMain.on('set-hotkey', (event, hotkey) => {
+    const success = registerGlobalShortcuts(hotkey)
+    event.reply('set-hotkey-result', { success, hotkey })
+})
 
 ipcMain.on('toggle-always-on-top', (_event, flag) => {
     win?.setAlwaysOnTop(flag)

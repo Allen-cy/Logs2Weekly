@@ -196,6 +196,8 @@ class UserConfigUpdate(BaseModel):
     model_name: str
     api_key: str
     inbox_retention_days: Optional[int] = 15
+    archive_retention_days: Optional[int] = 15
+    global_hotkey: Optional[str] = "Alt+Space"
 
 class LogEntry(BaseModel):
     content: str
@@ -500,7 +502,9 @@ async def save_user_config(user_id: int, config: UserConfigUpdate):
         "provider": config.provider,
         "model_name": config.model_name,
         "api_key_encrypted": config.api_key,
-        "inbox_retention_days": config.inbox_retention_days
+        "inbox_retention_days": config.inbox_retention_days,
+        "archive_retention_days": config.archive_retention_days,
+        "global_hotkey": config.global_hotkey
     }
     
     try:

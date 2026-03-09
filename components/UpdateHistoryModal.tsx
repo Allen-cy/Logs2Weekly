@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.1.2';
+export const APP_VERSION = '3.2.0';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.2.0',
+        date: '2026-03-09',
+        features: [
+            { icon: 'keyboard', title: '自定义全局热键', desc: '支持在设置页自定义呼出应用的快捷键，修改立即生效，指尖流畅度再进化。' },
+            { icon: 'sync_alt', title: '桌面原生偏好同步', desc: '热键设置与功能偏好现已支持云端同步，多台设备间无缝切换工作流。' },
+            { icon: 'database', title: '数据库架构升级', desc: '引入 v8 版本数据库模式支持，原生兼容更多桌面端个性化配置项。' }
+        ]
+    },
     {
         version: '3.1.2',
         date: '2026-03-09',

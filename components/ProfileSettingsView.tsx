@@ -29,6 +29,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [retentionDays, setRetentionDays] = useState(config.archiveRetentionDays || 15);
+    const [hotkey, setHotkey] = useState(config.globalHotkey || 'Alt+Space');
     const [isUpdating, setIsUpdating] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [showUpdateHistory, setShowUpdateHistory] = useState(false);
@@ -246,7 +247,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                             <span className="w-1.5 h-6 bg-primary rounded-full"></span>
                             功能偏好
                         </h3>
-                        <div className="space-y-6">
+                        <div className="space-y-8">
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center ml-4">
                                     <label className="text-[10px] font-black text-slate-500 uppercase">已归档留存时长 ({retentionDays} 天)</label>
@@ -271,12 +272,52 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                 </div>
                             </div>
 
+                            {/* Desktop Native hotkey setting */}
+                            {typeof window !== 'undefined' && (window as any).ipcRenderer && (
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <div className="flex justify-between items-center ml-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase">全局唤起快捷键 (Desktop Only)</label>
+                                        <span className="text-[10px] text-slate-400">支持 Alt/Cmd/Control + 按键</span>
+                                    </div>
+                                    <div className="flex gap-4 px-4">
+                                        <input
+                                            type="text"
+                                            value={hotkey}
+                                            onChange={(e) => setHotkey(e.target.value)}
+                                            placeholder="例如: Alt+Space"
+                                            className="flex-1 bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-6 text-white text-sm focus:border-primary outline-none transition-all font-mono"
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                if (!hotkey.trim()) return;
+                                                (window as any).ipcRenderer.send('set-hotkey', hotkey);
+                                                (window as any).ipcRenderer.once('set-hotkey-result', (_: any, res: { success: boolean, hotkey: string }) => {
+                                                    if (res.success) {
+                                                        setMessage({ type: 'success', text: `快捷键已成功激活: ${res.hotkey}` });
+                                                        onUpdateConfig({ ...config, globalHotkey: res.hotkey });
+                                                    } else {
+                                                        setMessage({ type: 'error', text: `注册失败，请检查格式或冲突: ${hotkey}` });
+                                                    }
+                                                });
+                                            }}
+                                            className="px-6 py-3 rounded-xl bg-slate-800 text-white font-bold text-xs hover:bg-slate-700 transition-all border border-white/5"
+                                        >
+                                            测试并激活
+                                        </button>
+                                    </div>
+                                    <p className="text-[9px] text-slate-600 ml-4 italic">* 修改后立即生效并保存至本地。常用格式: Alt+Space, Control+Space, Shift+F1。</p>
+                                </div>
+                            )}
+
                             <div className="pt-4">
                                 <button
                                     onClick={async () => {
                                         setIsUpdating(true);
                                         try {
-                                            const newConfig = { ...config, archiveRetentionDays: retentionDays };
+                                            const newConfig = { ...config, archiveRetentionDays: retentionDays, globalHotkey: hotkey };
+                                            // Handle persistence for hotkey separately in localStorage for now
+                                            localStorage.setItem('globalHotkey', hotkey);
+
                                             const response = await fetch(`${API_BASE_URL}/user/config?user_id=${user.id}`, {
                                                 method: 'PUT',
                                                 headers: { 'Content-Type': 'application/json' },
@@ -289,7 +330,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                             });
                                             if (response.ok) {
                                                 onUpdateConfig(newConfig);
-                                                setMessage({ type: 'success', text: '偏好设置已保存' });
+                                                setMessage({ type: 'success', text: '项偏好设置已保存' });
                                             }
                                         } catch (err) {
                                             setMessage({ type: 'error', text: '保存失败' });
@@ -299,7 +340,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                     }}
                                     className="bg-primary/20 text-primary border border-primary/30 px-8 py-4 rounded-2xl font-black text-sm hover:bg-primary/30 active:scale-95 transition-all shadow-xl"
                                 >
-                                    应用偏好设置
+                                    应用所有偏好设置
                                 </button>
                             </div>
                         </div>

@@ -97,4 +97,5 @@ export interface AppConfig {
   apiKeyTested: boolean;
   inboxRetentionDays?: number;
   archiveRetentionDays?: number;
+  globalHotkey?: string;
 }

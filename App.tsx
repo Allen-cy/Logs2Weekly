@@ -299,8 +299,13 @@ const App: React.FC = () => {
             apiKey: data.config.api_key_encrypted || '',
             apiKeyTested: !!data.config.api_key_encrypted,
             inboxRetentionDays: data.config.inbox_retention_days || 15,
-            archiveRetentionDays: data.config.archive_retention_days || 15
+            archiveRetentionDays: data.config.archive_retention_days || 15,
+            globalHotkey: data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+Space'
           });
+          // Sync to main process
+          if ((window as any).ipcRenderer) {
+            (window as any).ipcRenderer.send('set-hotkey', data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+Space');
+          }
         }
       } catch (err) {
         console.error("Failed to load user config", err);
@@ -321,7 +326,9 @@ const App: React.FC = () => {
             provider: config.provider,
             model_name: config.modelName,
             api_key: config.apiKey,
-            inbox_retention_days: config.inboxRetentionDays || 15
+            inbox_retention_days: config.inboxRetentionDays || 15,
+            archive_retention_days: config.archiveRetentionDays || 15,
+            global_hotkey: config.globalHotkey || 'Alt+Space'
           }),
         });
       } catch (err) {
