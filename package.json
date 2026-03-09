@@ -24,7 +24,8 @@
       {
         "provider": "github",
         "owner": "Allen-cy",
-        "repo": "Logs2Weekly"
+        "repo": "Logs2Weekly",
+        "releaseType": "release"
       }
     ],
     "mac": {
