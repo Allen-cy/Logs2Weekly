@@ -344,12 +344,13 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                                     provider: newConfig.provider,
                                                     model_name: newConfig.modelName,
                                                     api_key: newConfig.apiKey,
-                                                    archive_retention_days: retentionDays
+                                                    archive_retention_days: retentionDays,
+                                                    global_hotkey: hotkey
                                                 }),
                                             });
                                             if (response.ok) {
                                                 onUpdateConfig(newConfig);
-                                                setMessage({ type: 'success', text: '项偏好设置已保存' });
+                                                setMessage({ type: 'success', text: '项偏好设置已保存并同步至云端' });
                                             }
                                         } catch (err) {
                                             setMessage({ type: 'error', text: '保存失败' });

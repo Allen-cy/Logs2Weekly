@@ -46,6 +46,9 @@ const App: React.FC = () => {
     modelName: 'gemini-1.5-flash',
     apiKey: '',
     apiKeyTested: false,
+    inboxRetentionDays: 15,
+    archiveRetentionDays: 15,
+    globalHotkey: 'Alt+Space'
   });
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [showUpdateHistory, setShowUpdateHistory] = useState(false);

@@ -11,17 +11,17 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 try:
-    from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+    from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags
     from services.smtp_service import send_verification_email
     from database import get_supabase
 except ImportError:
     try:
-        from api.services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+        from api.services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags
         from api.services.smtp_service import send_verification_email
         from api.database import get_supabase
     except ImportError:
         # 最后的保底尝试：相对导入
-        from .services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs
+        from .services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags
         from .services.smtp_service import send_verification_email
         from .database import get_supabase
 import json
@@ -218,6 +218,17 @@ class SummaryRequest(BaseModel):
     model_name: str
     api_key: str
     logs: List[Any]
+class TagSuggestRequest(BaseModel):
+    content: str
+    model_type: str
+    model_name: str
+    api_key: str
+
+class TagSuggestRequest(BaseModel):
+    content: str
+    model_type: str
+    model_name: str
+    api_key: str
 
 class ReportEntry(BaseModel):
     user_id: int
@@ -642,6 +653,20 @@ async def generate_summary_api(req: SummaryRequest):
         raise HTTPException(status_code=500, detail="生成异常")
 
 # --- 用户反馈与通知 (Feedbacks & Notifications) ---
+
+@app.post("/api/suggest-tags")
+async def suggest_tags_api(req: TagSuggestRequest):
+    try:
+        tags = await suggest_tags(
+            api_key=req.api_key,
+            model_type=req.model_type,
+            model_name=req.model_name,
+            content=req.content
+        )
+        return {"success": True, "tags": tags}
+    except Exception as e:
+        print(f"Suggest tags API error: {e}")
+        return {"success": False, "tags": []}
 
 class FeedbackEntry(BaseModel):
     user_id: int

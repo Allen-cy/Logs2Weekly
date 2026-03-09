@@ -27,10 +27,15 @@
   - [x] 桌面版独立环境变量与寻址逻辑封装
   - [x] 构建脚本解耦 (Web build vs Desktop build)
   - [x] 解决 Vercel 环境下的生产部署路径寻址报错
-- [x] **V3.1.2: 全量版本同步与广播系统**
-  - [x] 多端视图状态持久化 (View Persistence)
-  - [x] 基于 Supabase 的管理员全局广播能力
-  - [x] UI 全局版本号 (V3.1.2) 实时化同步展示
+- [x] **V3.2.0: 桌面端原生深度集成 (Desktop Native Integration)**
+  - [x] 全局秒开快捷键 (Global Hotkey: `Alt+Space`)
+  - [x] 系统托盘菜单 (System Tray & Context Menu)
+  - [x] 置顶模式 (Always on Top Mode & UI Pin)
+  - [x] 自定义快捷键设置与云端同步 (Custom Hotkey & Sync)
+  - [x] 手动检查更新机制 (Manual Update Check)
+  - [x] 数据库架构 v8 升级 (Schema Migration)
+  - [x] AI 智能标签推荐 (AI Tag Suggestion)
+  - [x] 周报 Markdown 文件下载 (Report Download)
 
 ## 2. 鉴权模块 (Authentication)
 

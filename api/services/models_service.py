@@ -133,3 +133,23 @@ async def aggregate_daily_logs(api_key: str, model_type: str, model_name: str, l
 请整理成 Daily Insight，包含核心总结、闪念感悟和行动建议。中文输出。"""
     provider = get_provider(model_type)
     return await provider.generate_response(api_key, model_name, prompt)
+async def suggest_tags(api_key: str, model_type: str, model_name: str, content: str) -> List[str]:
+    prompt = f"""请根据以下日志内容，推荐 3-5 个最相关的中文标签。
+只需返回 JSON 数组字符串，严禁包含任何说明文字。
+例如：["工作", "学习", "健康"]
+
+内容：
+{content}
+"""
+    provider = get_provider(model_type)
+    response = await provider.generate_response(api_key, model_name, prompt)
+    if not response: return []
+    try:
+        # 去掉可能存在的 markdown 代码块包裹
+        clean_json = response.replace("```json", "").replace("```", "").strip()
+        tags = json.loads(clean_json)
+        if isinstance(tags, list):
+            return [str(t) for t in tags[:5]]
+    except Exception as e:
+        print(f"Suggest tags parse error: {e}, Content: {response}")
+    return []
