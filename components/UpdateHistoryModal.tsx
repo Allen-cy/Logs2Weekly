@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.1.0';
+export const APP_VERSION = '3.1.1';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.1.1',
+        date: '2026-03-09',
+        features: [
+            { icon: 'desktop_mac', title: 'macOS 桌面客户端', desc: '正式支持 Apple M 系列芯片，提供原生窗口体验与更稳定的性能表现。' },
+            { icon: 'auto_mode', title: '任务自动归档', desc: '待办事项完成后将自动移至归档区，配合优雅消失动画，让您的看板始终清爽。' },
+            { icon: 'save', title: '视图持久化增强', desc: '智能记忆您最后停留的功能模块，无论是刷新页面还是跨次登录，都能无缝衔接。' },
+            { icon: 'settings_ethernet', title: '构建流程优化', desc: '网页版与桌面版构建逻辑解耦，完美兼容 Vercel 自动化部署。' }
+        ]
+    },
     {
         version: '3.1.0',
         date: '2026-03-08',
