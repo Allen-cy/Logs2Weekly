@@ -147,7 +147,7 @@ const UserManualModal: React.FC<UserManualModalProps> = ({ isOpen, onClose }) =>
                 {/* Footer */}
                 <div className="px-6 py-4 bg-slate-900 border-t border-slate-800 text-center">
                     <p className="text-[10px] text-slate-500">
-                        Log2Weekly v1.1.0 • Built with ❤️ for Productivity
+                        Log2Weekly v3.1.2 • Built with ❤️ for Productivity
                     </p>
                 </div>
             </div>

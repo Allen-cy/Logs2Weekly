@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.1.1';
+export const APP_VERSION = '3.1.2';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.1.2',
+        date: '2026-03-09',
+        features: [
+            { icon: 'download', title: '桌面安装包更新', desc: '下载地址已更新为夸克网盘：https://pan.quark.cn/s/a69f3effb41c (内含 M 系列芯片专用版)' },
+            { icon: 'history_edu', title: '版本详情同步', desc: '修正了历史版本演进在个人中心的显示延迟，确保多端版本信息实时对齐。' }
+        ]
+    },
     {
         version: '3.1.1',
         date: '2026-03-09',

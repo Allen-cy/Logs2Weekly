@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, AppConfig } from '../types';
 import { API_BASE_URL } from '../aiService';
-import UpdateHistoryModal from './UpdateHistoryModal';
+import UpdateHistoryModal, { APP_VERSION } from './UpdateHistoryModal';
 import FeedbackModal from './FeedbackModal';
 import AdminFeedbackPanel from './AdminFeedbackPanel';
 
@@ -135,8 +135,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                 <p className="text-white text-sm font-bold">已在云端持久化</p>
                             </div>
                             <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800">
-                                <p className="text-[10px] font-black text-slate-600 uppercase mb-1">安全等级</p>
-                                <p className="text-success text-sm font-bold">高</p>
+                                <p className="text-[10px] font-black text-slate-600 uppercase mb-1">系统版本</p>
+                                <p className="text-primary text-sm font-bold">v{APP_VERSION}</p>
                             </div>
                         </div>
                     </div>
