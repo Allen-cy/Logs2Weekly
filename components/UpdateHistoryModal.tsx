@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.2.0';
+export const APP_VERSION = '3.2.1';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.2.1',
+        date: '2026-03-09',
+        features: [
+            { icon: 'open_with', title: '窗口拖拽支持', desc: '修复了桌面端无法通过顶部导航栏移动窗口的问题，现在可以像原生应用一样自由拖动。' },
+            { icon: 'aspect_ratio', title: '自适应宽屏优化', desc: '深度优化了从 13 寸笔记本到 27 寸超宽屏的显示效果，消除两侧多余留白，提升空间利用率。' },
+            { icon: 'exit_to_app', title: '退出逻辑修复', desc: '解决了 macOS 下无法正常彻底退出程序的问题，支持 Cmd+Q 与托盘菜单的一键秒退。' }
+        ]
+    },
     {
         version: '3.2.0',
         date: '2026-03-09',

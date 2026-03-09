@@ -189,8 +189,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   }, [logs]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-24 lg:pb-0">
-      <div className="lg:col-span-8 space-y-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 pb-24 lg:pb-0">
+      <div className="lg:col-span-8 space-y-6 lg:space-y-8">
         <GreetingSection username={user?.username || 'User'} />
 
         {showGuide && !searchQuery && (
@@ -241,11 +241,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit(e);
                   }}
-                  className="w-full bg-transparent border-0 text-lg p-5 text-white placeholder-slate-500 focus:ring-0 resize-none min-h-[100px]"
+                  className="w-full bg-transparent border-0 text-base sm:text-lg p-4 sm:p-5 text-white placeholder-slate-500 focus:ring-0 resize-none min-h-[80px] sm:min-h-[100px]"
                   placeholder="随时捕捉您的想法、进度或灵感... (按 Cmd+Enter 快速记录)"
                 />
-                <div className="px-4 py-3 bg-[#131b25] border-t border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-slate-500 text-xs italic">
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#131b25] border-t border-slate-800 flex items-center justify-between">
+                  <div className="hidden sm:flex items-center gap-2 text-slate-500 text-xs italic">
                     <span className="material-icons text-sm">edit_note</span>
                     记录将暂存进右侧收纳盒
                   </div>
@@ -275,7 +275,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         </section>
 
         <section className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
             <div className="flex items-center gap-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <span className="material-icons text-primary">auto_awesome</span>
@@ -311,7 +311,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       <aside className="lg:col-span-4 space-y-6">
-        <div className="bg-surface-dark rounded-xl border border-slate-800 p-5 shadow-sm max-h-[500px] flex flex-col">
+        <div className="bg-surface-dark rounded-xl border border-slate-800 p-4 sm:p-5 shadow-sm max-h-[400px] lg:max-h-[500px] flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2 cursor-pointer hover:text-primary transition-colors" onClick={onViewInbox}>
               <span className="material-icons text-amber-500 text-sm">inventory_2</span>

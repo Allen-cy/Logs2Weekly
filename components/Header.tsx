@@ -34,14 +34,14 @@ const Header: React.FC<HeaderProps> = ({
   onToggleAlwaysOnTop
 }) => {
   return (
-    <header className="bg-surface-dark/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-[100] shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20 gap-8">
-          <div className="flex items-center gap-4 flex-shrink-0">
+    <header className="app-header bg-surface-dark/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-[100] shadow-md">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16 sm:h-20 gap-3 sm:gap-8">
+          <div className="flex items-center gap-4 flex-shrink-0 no-drag">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg shadow-primary/20 cursor-pointer" onClick={() => setViewMode('dashboard')}>
               <span className="material-icons text-xl">rocket_launch</span>
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden xl:block">
               <h1 className="text-lg font-black text-white tracking-tight">Logs2Weekly</h1>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
@@ -50,19 +50,19 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* 搜索框：移动端自适应 */}
-          <div className="flex-1 max-w-md relative group mx-4 md:mx-0">
-            <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors text-sm">search</span>
+          {/* 搜索框：动态缩放 */}
+          <div className="flex-1 max-w-[120px] sm:max-w-[160px] xl:max-w-md relative group mx-1 sm:mx-2 md:mx-0">
+            <span className="material-icons absolute left-3 xl:left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors text-xs xl:text-sm">search</span>
             <input
               type="text"
               placeholder="搜索..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/60 border border-white/5 rounded-full py-2 px-10 text-[10px] text-white focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-inner"
+              className="w-full bg-slate-900/60 border border-white/5 rounded-full py-1.5 xl:py-2 px-7 sm:px-8 xl:px-10 text-[10px] text-white focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-inner"
             />
           </div>
 
-          <nav className="hidden xl:flex bg-slate-900/50 p-1 rounded-2xl border border-slate-800 flex-shrink-0">
+          <nav className="hidden lg:flex bg-slate-900/50 p-1 rounded-2xl border border-slate-800 flex-shrink-0 scale-90 xl:scale-100 origin-center">
             <button
               onClick={() => setViewMode('dashboard')}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'dashboard' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
@@ -107,7 +107,7 @@ const Header: React.FC<HeaderProps> = ({
             </button>
           </nav>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {viewMode === 'review' && (
               <button
                 onClick={onRegenerate}
@@ -126,7 +126,7 @@ const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={onOpenGuide}
-              className="w-10 h-10 rounded-xl border border-slate-800 text-slate-400 hover:text-primary hover:border-primary/30 transition-all flex items-center justify-center group"
+              className="hidden sm:flex w-10 h-10 rounded-xl border border-slate-800 text-slate-400 hover:text-primary hover:border-primary/30 transition-all items-center justify-center group"
               title="用户指南"
             >
               <span className="material-icons text-xl group-hover:rotate-12 transition-transform">help_outline</span>
@@ -135,7 +135,7 @@ const Header: React.FC<HeaderProps> = ({
             {onOpenFeedback && (
               <button
                 onClick={onOpenFeedback}
-                className="w-10 h-10 rounded-xl border border-slate-800 text-slate-400 hover:text-amber-500 hover:border-amber-500/30 transition-all flex items-center justify-center group"
+                className="hidden sm:flex w-10 h-10 rounded-xl border border-slate-800 text-slate-400 hover:text-amber-500 hover:border-amber-500/30 transition-all items-center justify-center group"
                 title="吐槽与建议"
               >
                 <span className="material-icons text-xl group-hover:scale-110 transition-transform">campaign</span>
@@ -155,7 +155,7 @@ const Header: React.FC<HeaderProps> = ({
             {onExportNotebookLM && (
               <button
                 onClick={onExportNotebookLM}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-900/20 text-xs font-black transition-all"
+                className="hidden xl:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-900/20 text-xs font-black transition-all"
                 title="导出所有记录并用作 Google NotebookLM 资料，写年终总结神器！"
               >
                 <span className="material-icons text-sm">library_books</span>

@@ -329,7 +329,7 @@ const TodoView: React.FC<TodoViewProps> = ({
     );
 
     return (
-        <div className="flex flex-col lg:flex-row bg-black/20 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden min-h-[600px] animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col lg:flex-row bg-black/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/5 overflow-hidden min-h-[500px] sm:min-h-[600px] animate-in fade-in zoom-in-95 duration-500">
             <aside className={`
                 ${showSidebar ? 'fixed inset-0 z-50 bg-slate-950 p-6 flex' : 'hidden'} 
                 lg:relative lg:flex lg:w-72 lg:bg-slate-900/40 lg:border-r lg:border-white/5 lg:p-6 flex-col gap-6
@@ -342,12 +342,12 @@ const TodoView: React.FC<TodoViewProps> = ({
             </aside>
 
             <main className="flex-1 bg-surface-dark/40 flex flex-col min-w-0">
-                <div className="p-6 lg:p-8 pb-4 flex items-center justify-between gap-4">
+                <div className="p-4 sm:p-6 lg:p-8 pb-3 sm:pb-4 flex items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setShowSidebar(true)} className="lg:hidden text-primary">
                             <span className="material-icons">menu_open</span>
                         </button>
-                        <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-4">
+                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-3 sm:gap-4">
                             {activeList === 'all' ? '全部' : activeList === 'today' ? '今天' : activeList === 'planned' ? '计划' : activeList === 'completed' ? '已完成' : activeList}
                             <span className="text-slate-600 text-xl">{filteredTodos.length}</span>
                         </h2>
@@ -379,7 +379,7 @@ const TodoView: React.FC<TodoViewProps> = ({
                     />
                 ) : (
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex-1 overflow-y-auto px-6 lg:px-8 space-y-px">
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 space-y-px">
                             {filteredTodos.length === 0 && (
                                 <div className="flex flex-col items-center justify-center py-20 text-slate-500">
                                     <span className="material-icons text-5xl mb-4 opacity-30">
@@ -500,9 +500,9 @@ const TodoView: React.FC<TodoViewProps> = ({
                             ))}
                         </div>
 
-                        <div className="p-6 lg:px-8 border-t border-white/5 bg-slate-900/20">
+                        <div className="p-4 sm:p-6 lg:px-8 border-t border-white/5 bg-slate-900/20">
                             <form onSubmit={handleAdd}>
-                                <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white/5 border border-white/5 focus-within:border-primary/30 transition-all shadow-xl">
+                                <div className="flex flex-col gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-white/5 border border-white/5 focus-within:border-primary/30 transition-all shadow-xl">
                                     <div className="flex items-center gap-3">
                                         <span className="material-icons text-slate-600">add</span>
                                         <input
@@ -514,7 +514,7 @@ const TodoView: React.FC<TodoViewProps> = ({
                                         />
                                     </div>
 
-                                    <div className="flex flex-wrap items-center justify-between border-t border-white/5 pt-3 gap-y-3">
+                                    <div className="flex flex-wrap items-center justify-between border-t border-white/5 pt-2.5 sm:pt-3 gap-y-2 sm:gap-y-3">
                                         <div className="flex items-center gap-2">
                                             {(Object.entries(PRIORITY_MAP) as [TodoPriority, any][]).map(([p, info]) => (
                                                 <button

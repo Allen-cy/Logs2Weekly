@@ -90,9 +90,9 @@ function createWindow() {
     })
 }
 
-let currentHotkey = 'Alt+Space'
+let currentHotkey = 'Alt+M'
 
-function registerGlobalShortcuts(hotkey: string = 'Alt+Space') {
+function registerGlobalShortcuts(hotkey: string = 'Alt+M') {
     try {
         globalShortcut.unregisterAll()
         const success = globalShortcut.register(hotkey, () => {
@@ -157,6 +157,10 @@ app.on('activate', () => {
     } else {
         win?.show()
     }
+})
+
+app.on('before-quit', () => {
+    isQuitting = true
 })
 
 app.whenReady().then(() => {

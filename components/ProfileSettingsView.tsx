@@ -29,7 +29,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [retentionDays, setRetentionDays] = useState(config.archiveRetentionDays || 15);
-    const [hotkey, setHotkey] = useState(config.globalHotkey || 'Alt+Space');
+    const [hotkey, setHotkey] = useState(config.globalHotkey || 'Alt+M');
+    const [isRecording, setIsRecording] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [showUpdateHistory, setShowUpdateHistory] = useState(false);
@@ -92,8 +93,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     };
 
     return (
-        <div className="max-w-4xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center gap-4 mb-12">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-8 sm:py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-12">
                 <button
                     onClick={onBack}
                     className="w-12 h-12 rounded-2xl bg-slate-800/50 hover:bg-slate-700/50 text-white flex items-center justify-center transition-all"
@@ -101,15 +102,15 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                     <span className="material-icons">arrow_back</span>
                 </button>
                 <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">个人中心</h1>
+                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">个人中心</h1>
                     <p className="text-slate-500 text-sm font-medium">管理您的账户安全与偏好设置</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
                 {/* Sidebar */}
                 <div className="space-y-4">
-                    <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 text-center shadow-xl">
+                    <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 text-center shadow-xl">
                         <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-tr from-primary to-purple-500 mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-primary/20">
                             <span className="text-4xl font-black text-white">{user.username.charAt(0).toUpperCase()}</span>
                         </div>
@@ -125,7 +126,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                         </button>
                     </div>
 
-                    <div className="bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-xl">
+                    <div className="bg-gradient-to-br from-slate-900/60 to-slate-950/60 backdrop-blur-xl border border-white/5 rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-xl">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
                             <span className="material-icons text-base text-primary">info</span>
                             账户状态
@@ -163,7 +164,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                 </div>
 
                 {/* Main Content */}
-                <div className="md:col-span-2 space-y-8">
+                <div className="md:col-span-2 space-y-6 sm:space-y-8">
                     {message.text && (
                         <div className={`p-4 rounded-2xl animate-in zoom-in-95 flex items-center gap-3 text-xs font-bold border ${message.type === 'success' ? 'bg-success/10 border-success/30 text-success' : 'bg-danger/10 border-danger/30 text-danger'
                             }`}>
@@ -173,7 +174,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                     )}
 
                     {/* Profile Form */}
-                    <section className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-10 shadow-xl">
+                    <section className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-xl">
                         <h3 className="text-xl font-black text-white mb-8 flex items-center gap-3">
                             <span className="w-1.5 h-6 bg-primary rounded-full"></span>
                             基础资料
@@ -220,7 +221,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                     </section>
 
                     {/* Password Form */}
-                    <section className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-10 shadow-xl">
+                    <section className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-xl">
                         <h3 className="text-xl font-black text-white mb-8 flex items-center gap-3">
                             <span className="w-1.5 h-6 bg-purple-500 rounded-full"></span>
                             安全设置
@@ -261,7 +262,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                     </section>
 
                     {/* App Behavior Settings */}
-                    <section className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-10 shadow-xl">
+                    <section className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-xl">
                         <h3 className="text-xl font-black text-white mb-8 flex items-center gap-3">
                             <span className="w-1.5 h-6 bg-primary rounded-full"></span>
                             功能偏好
@@ -291,40 +292,98 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                 </div>
                             </div>
 
-                            {/* Desktop Native hotkey setting */}
+                            {/* 桌面端快捷键设置 - 录制器模式 */}
                             {typeof window !== 'undefined' && (window as any).ipcRenderer && (
-                                <div className="space-y-4 pt-4 border-t border-white/5">
-                                    <div className="flex justify-between items-center ml-4">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">全局唤起快捷键 (Desktop Only)</label>
-                                        <span className="text-[10px] text-slate-400">支持 Alt/Cmd/Control + 按键</span>
+                                <div className="space-y-4 pt-6 border-t border-white/5">
+                                    <div className="flex justify-between items-end ml-4">
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">
+                                                <span className="material-icons text-xs text-primary">keyboard</span>
+                                                全局呼出快捷键
+                                            </label>
+                                            <p className="text-[10px] text-slate-400 mt-1">默认: Option+M (Alt+M)</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setIsRecording(true)}
+                                                className={`px-4 py-2 rounded-xl font-bold text-[10px] transition-all flex items-center gap-1.5 ${isRecording ? 'bg-primary text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                                            >
+                                                <span className="material-icons text-sm">{isRecording ? 'stop_circle' : 'fiber_manual_record'}</span>
+                                                {isRecording ? '正在录制...' : '录制新热键'}
+                                            </button>
+                                            {hotkey !== 'Alt+M' && (
+                                                <button
+                                                    onClick={() => {
+                                                        const defaultKey = 'Alt+M';
+                                                        setHotkey(defaultKey);
+                                                        (window as any).ipcRenderer.send('set-hotkey', defaultKey);
+                                                        onUpdateConfig({ ...config, globalHotkey: defaultKey });
+                                                        setMessage({ type: 'success', text: '已恢复默认热键' });
+                                                    }}
+                                                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-500 hover:text-white font-bold text-[10px] transition-all"
+                                                >
+                                                    恢复默认
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex gap-4 px-4">
-                                        <input
-                                            type="text"
-                                            value={hotkey}
-                                            onChange={(e) => setHotkey(e.target.value)}
-                                            placeholder="例如: Alt+Space"
-                                            className="flex-1 bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-6 text-white text-sm focus:border-primary outline-none transition-all font-mono"
-                                        />
-                                        <button
-                                            onClick={() => {
-                                                if (!hotkey.trim()) return;
-                                                (window as any).ipcRenderer.send('set-hotkey', hotkey);
-                                                (window as any).ipcRenderer.once('set-hotkey-result', (_: any, res: { success: boolean, hotkey: string }) => {
-                                                    if (res.success) {
-                                                        setMessage({ type: 'success', text: `快捷键已成功激活: ${res.hotkey}` });
-                                                        onUpdateConfig({ ...config, globalHotkey: res.hotkey });
-                                                    } else {
-                                                        setMessage({ type: 'error', text: `注册失败，请检查格式或冲突: ${hotkey}` });
-                                                    }
-                                                });
-                                            }}
-                                            className="px-6 py-3 rounded-xl bg-slate-800 text-white font-bold text-xs hover:bg-slate-700 transition-all border border-white/5"
-                                        >
-                                            测试并激活
-                                        </button>
+
+                                    {/* 录制或输入区域 */}
+                                    <div className="px-4 relative group">
+                                        <div className={`w-full bg-slate-950/60 border-2 rounded-2xl py-6 flex items-center justify-center transition-all ${isRecording ? 'border-primary ring-4 ring-primary/20 shadow-2xl' : 'border-slate-800 hover:border-slate-700'}`}>
+                                            <span className="text-3xl font-black text-white tracking-widest font-mono uppercase">
+                                                {hotkey}
+                                            </span>
+                                            {isRecording && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 rounded-2xl">
+                                                    <div className="text-center">
+                                                        <p className="text-primary font-black text-sm mb-2 animate-bounce">请按下组合键</p>
+                                                        <p className="text-slate-500 text-[10px]">支持 Cmd/Alt/Shift/Control + 按键</p>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setIsRecording(false); }}
+                                                            className="mt-4 text-[10px] text-slate-600 underline"
+                                                        >
+                                                            取消录制
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        autoFocus
+                                                        className="absolute inset-0 opacity-0 cursor-default"
+                                                        onKeyDown={(e) => {
+                                                            e.preventDefault();
+                                                            const keys = [];
+                                                            if (e.metaKey) keys.push('Cmd');
+                                                            if (e.ctrlKey) keys.push('Control');
+                                                            if (e.altKey) keys.push('Alt');
+                                                            if (e.shiftKey) keys.push('Shift');
+
+                                                            // 获取主键
+                                                            const key = e.key === ' ' ? 'Space' : e.key;
+
+                                                            // 排除只有修饰键的情况
+                                                            if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+                                                                const newHotkey = [...keys, key.charAt(0).toUpperCase() + key.slice(1)].join('+');
+                                                                setHotkey(newHotkey);
+                                                                setIsRecording(false);
+
+                                                                // 自动测试激活
+                                                                (window as any).ipcRenderer.send('set-hotkey', newHotkey);
+                                                                (window as any).ipcRenderer.once('set-hotkey-result', (_: any, res: { success: boolean, hotkey: string }) => {
+                                                                    if (res.success) {
+                                                                        setMessage({ type: 'success', text: `热键已录制并激活: ${res.hotkey}` });
+                                                                        onUpdateConfig({ ...config, globalHotkey: res.hotkey });
+                                                                    } else {
+                                                                        setMessage({ type: 'error', text: `注册失败，可能是系统冲突或格式不支持` });
+                                                                    }
+                                                                });
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <p className="text-[9px] text-slate-600 ml-4 italic">* 修改后立即生效并保存至本地。常用格式: Alt+Space, Control+Space, Shift+F1。</p>
+                                    <p className="text-[9px] text-slate-600 ml-4 italic">* "双击" 快捷键在 Electron 标准库中由于系统权限限制暂不支持，建议使用组合键形式。</p>
                                 </div>
                             )}
 
@@ -367,7 +426,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                     </section>
 
                     {/* System Actions */}
-                    <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
                         <button
                             onClick={() => setShowUpdateHistory(true)}
                             className="flex-1 bg-slate-900/40 backdrop-blur-xl border border-white/5 hover:bg-white/5 transition-colors rounded-2xl p-6 shadow-xl flex items-center justify-between group"

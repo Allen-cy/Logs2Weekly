@@ -36,6 +36,8 @@
   - [x] 数据库架构 v8 升级 (Schema Migration)
   - [x] AI 智能标签推荐 (AI Tag Suggestion)
   - [x] 周报 Markdown 文件下载 (Report Download)
+  - [x] **V3.2.1 桌面端增强与 Bug 修复 (Dragging, Responsive, Quit Fix)**
+- [x] **V3.2.0 桌面端安装包构建 (Custom Naming & Packaging)**
 
 ## 2. 鉴权模块 (Authentication)
 

@@ -33,7 +33,7 @@ else
     python3 -m uvicorn index:app --port 8000 > ../backend.log 2>&1 &
   fi
   cd ..
-  sleep 2
+  sleep 4
   if check_port 8000; then
     echo -e "${GREEN}✅ 后端成功启动在 http://localhost:8000${NC}"
   else

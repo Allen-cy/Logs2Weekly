@@ -48,7 +48,7 @@ const App: React.FC = () => {
     apiKeyTested: false,
     inboxRetentionDays: 15,
     archiveRetentionDays: 15,
-    globalHotkey: 'Alt+Space'
+    globalHotkey: 'Alt+M'
   });
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [showUpdateHistory, setShowUpdateHistory] = useState(false);
@@ -303,11 +303,11 @@ const App: React.FC = () => {
             apiKeyTested: !!data.config.api_key_encrypted,
             inboxRetentionDays: data.config.inbox_retention_days || 15,
             archiveRetentionDays: data.config.archive_retention_days || 15,
-            globalHotkey: data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+Space'
+            globalHotkey: data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+M'
           });
           // Sync to main process
           if ((window as any).ipcRenderer) {
-            (window as any).ipcRenderer.send('set-hotkey', data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+Space');
+            (window as any).ipcRenderer.send('set-hotkey', data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+M');
           }
         }
       } catch (err) {
@@ -331,7 +331,7 @@ const App: React.FC = () => {
             api_key: config.apiKey,
             inbox_retention_days: config.inboxRetentionDays || 15,
             archive_retention_days: config.archiveRetentionDays || 15,
-            global_hotkey: config.globalHotkey || 'Alt+Space'
+            global_hotkey: config.globalHotkey || 'Alt+M'
           }),
         });
       } catch (err) {
@@ -678,7 +678,7 @@ const App: React.FC = () => {
         <FeedbackModal userId={user.id} onClose={() => setShowFeedbackFromMessages(false)} />
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {viewMode === 'register' && (
           <RegisterView
             onRegisterSuccess={(u) => {
@@ -798,13 +798,13 @@ const App: React.FC = () => {
 
       {/* 移动端底部导航 - 全局统一 */}
       {user && (
-        <nav className="fixed bottom-0 left-0 right-0 lg:hidden px-4 pb-8 pt-2 bg-slate-950/80 backdrop-blur-2xl border-t border-white/5 z-[100] flex justify-around items-center">
+        <nav className="fixed bottom-0 left-0 right-0 lg:hidden px-2 sm:px-4 pb-6 sm:pb-8 pt-2 bg-slate-950/90 backdrop-blur-2xl border-t border-white/5 z-[100] flex justify-around items-center safe-area-bottom">
           <button
             onClick={() => setViewMode('dashboard')}
             className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'dashboard' ? 'text-primary scale-110' : 'text-slate-500'}`}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'dashboard' ? 'bg-primary/20' : ''}`}>
-              <span className="material-icons text-xl">home</span>
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'dashboard' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-lg sm:text-xl">home</span>
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">控制台</span>
           </button>
@@ -813,8 +813,8 @@ const App: React.FC = () => {
             onClick={() => setViewMode('todos')}
             className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'todos' ? 'text-primary scale-110' : 'text-slate-500'}`}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'todos' ? 'bg-primary/20' : ''}`}>
-              <span className="material-icons text-xl">checklist</span>
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'todos' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-lg sm:text-xl">checklist</span>
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">待办</span>
           </button>
@@ -823,8 +823,8 @@ const App: React.FC = () => {
             onClick={() => setViewMode('review')}
             className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'review' ? 'text-primary scale-110' : 'text-slate-500'}`}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'review' ? 'bg-primary/20' : ''}`}>
-              <span className="material-icons text-xl">auto_awesome</span>
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'review' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-lg sm:text-xl">auto_awesome</span>
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">周报</span>
           </button>
@@ -833,15 +833,15 @@ const App: React.FC = () => {
             onClick={() => setViewMode('profile')}
             className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'profile' ? 'text-primary scale-110' : 'text-slate-500'}`}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'profile' ? 'bg-primary/20' : ''}`}>
-              <span className="material-icons text-xl">person</span>
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'profile' ? 'bg-primary/20' : ''}`}>
+              <span className="material-icons text-lg sm:text-xl">person</span>
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">我的</span>
           </button>
         </nav>
       )}
 
-      <footer className="mt-auto py-6 pb-28 lg:pb-6 border-t border-slate-800 bg-surface-dark/50">
+      <footer className="mt-auto py-4 sm:py-6 pb-24 sm:pb-28 lg:pb-6 border-t border-slate-800 bg-surface-dark/50">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium">
           <p>© 2025 AI Productivity Hub • Multi-Model Powered</p>
           <div className="flex gap-4">
