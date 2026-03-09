@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,36 +31,60 @@
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f161e; }
-        ::-webkit-scrollbar-thumb { background: #2a3b4d; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #374a60; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f161e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a3b4d;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374a60;
+        }
+
         .glass-panel {
             background: rgba(22, 32, 44, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .prose { max-width: none; color: inherit; }
-        .prose strong { color: #fff; }
-        .prose code { color: #137fec; background: rgba(19, 127, 236, 0.1); padding: 2px 4px; border-radius: 4px; }
+
+        .prose {
+            max-width: none;
+            color: inherit;
+        }
+
+        .prose strong {
+            color: #fff;
+        }
+
+        .prose code {
+            color: #137fec;
+            background: rgba(19, 127, 236, 0.1);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "recharts": "https://esm.sh/recharts@^3.7.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-markdown": "https://esm.sh/react-markdown@^9.0.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
 </head>
+
 <body class="bg-background-dark text-slate-200 min-h-screen">
-    <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
+    <div id="root">
+        <div
+            style="display:flex; justify-content:center; align-items:center; height:100vh; color:#fff; font-family:sans-serif;">
+            程序正在加载中... 如果长时间处于此界面，请检查网络连接。
+        </div>
+    </div>
+    <script type="module" src="./index.tsx"></script>
 </body>
+
 </html>

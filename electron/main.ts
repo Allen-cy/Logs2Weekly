@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import path from 'node:path'
 
 // __dirname is natively available in CJS
@@ -29,21 +29,25 @@ function createWindow() {
         height: 800,
         titleBarStyle: 'hiddenInset',
         webPreferences: {
-            preload: path.join(__dirname, 'preload.mjs'),
+            preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: true,
+            webSecurity: false,
         },
     })
 
+    // win.webContents.openDevTools()
+
     // Test active push message to Renderer-process.
     win.webContents.on('did-finish-load', () => {
+        const indexPath = path.join(RENDERER_DIST, 'index.html')
+        console.log('App loaded from:', indexPath)
         win?.webContents.send('main-process-message', (new Date).toLocaleString())
     })
 
     if (VITE_DEV_SERVER_URL) {
         win.loadURL(VITE_DEV_SERVER_URL)
     } else {
-        // win.loadFile('dist/index.html')
         win.loadFile(path.join(RENDERER_DIST, 'index.html'))
     }
 }
@@ -66,4 +70,6 @@ app.on('activate', () => {
     }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+    createWindow()
+})

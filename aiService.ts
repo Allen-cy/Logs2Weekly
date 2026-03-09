@@ -1,10 +1,10 @@
 
 import { LogEntry, WeeklySummary, AppConfig } from "./types";
 
-// 确保在生产环境下，API 始终指向根目录下的 /api，防止产生畸形路径
-// 如果处在 Electron（file://）环境下，则指向本地 8000 端口
+// 确保在生产环境下，API 始终指向正确的产线地址
+// 如果处在 Electron（file://）环境下，优先连接公网产线 API
 export const API_BASE_URL = typeof window !== 'undefined' && window.location.protocol === 'file:'
-    ? 'http://127.0.0.1:8000/api'
+    ? 'https://logs2weekly.chunyu2026.dpdns.org/api'
     : '/api';
 
 export const testConnection = async (config: AppConfig): Promise<{ success: boolean; message: string }> => {
