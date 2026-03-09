@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, globalShortcut, Menu, Tray, nativeImage, ipcMain } from 'electron'
 import path from 'node:path'
+import { autoUpdater } from 'electron-updater'
 
 // The built directory structure
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -167,8 +168,84 @@ app.whenReady().then(() => {
     createWindow()
     createTray()
     registerGlobalShortcuts()
+
+    // 自动更新：仅在生产环境启用
+    if (!VITE_DEV_SERVER_URL) {
+        setupAutoUpdater()
+    }
 })
 
 app.on('will-quit', () => {
     globalShortcut.unregisterAll()
+})
+
+// ========== 自动更新逻辑 ==========
+function setupAutoUpdater() {
+    // 不自动下载，先通知用户
+    autoUpdater.autoDownload = false
+    autoUpdater.autoInstallOnAppQuit = true
+
+    // 检测到新版本
+    autoUpdater.on('update-available', (info) => {
+        console.log('Update available:', info.version)
+        win?.webContents.send('update-available', {
+            version: info.version,
+            releaseNotes: info.releaseNotes || ''
+        })
+    })
+
+    // 没有新版本
+    autoUpdater.on('update-not-available', () => {
+        console.log('No update available.')
+        win?.webContents.send('update-not-available')
+    })
+
+    // 下载进度
+    autoUpdater.on('download-progress', (progress) => {
+        win?.webContents.send('update-download-progress', {
+            percent: Math.round(progress.percent),
+            transferred: progress.transferred,
+            total: progress.total
+        })
+    })
+
+    // 下载完成，准备安装
+    autoUpdater.on('update-downloaded', () => {
+        console.log('Update downloaded, ready to install.')
+        win?.webContents.send('update-downloaded')
+    })
+
+    // 更新错误
+    autoUpdater.on('error', (err) => {
+        console.error('Auto-updater error:', err)
+    })
+
+    // 启动后延迟 5 秒静默检查
+    setTimeout(() => {
+        autoUpdater.checkForUpdates().catch((err) => {
+            console.error('Check for updates failed:', err)
+        })
+    }, 5000)
+}
+
+// 渲染进程请求手动检查更新
+ipcMain.on('check-for-updates', () => {
+    if (!VITE_DEV_SERVER_URL) {
+        autoUpdater.checkForUpdates().catch((err) => {
+            console.error('Manual check for updates failed:', err)
+        })
+    }
+})
+
+// 渲染进程确认下载更新
+ipcMain.on('download-update', () => {
+    autoUpdater.downloadUpdate().catch((err) => {
+        console.error('Download update failed:', err)
+    })
+})
+
+// 渲染进程请求安装并重启
+ipcMain.on('install-update', () => {
+    isQuitting = true
+    autoUpdater.quitAndInstall()
 })

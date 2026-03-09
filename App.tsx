@@ -63,6 +63,11 @@ const App: React.FC = () => {
   const [showFeedbackFromMessages, setShowFeedbackFromMessages] = useState(false);
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
 
+  // 自动更新状态
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'available' | 'downloading' | 'downloaded'>('idle');
+  const [updateProgress, setUpdateProgress] = useState({ percent: 0, transferred: 0, total: 0 });
+  const [updateInfo, setUpdateInfo] = useState({ version: '', releaseNotes: '' });
+
   const handleSuggestTags = async (content: string) => {
     return await suggestTags(content, config);
   };
@@ -86,6 +91,29 @@ const App: React.FC = () => {
       (window as any).ipcRenderer.send('toggle-always-on-top', newState);
     }
   };
+
+  // 监听自动更新事件
+  useEffect(() => {
+    if ((window as any).ipcRenderer) {
+      const cleanupAvailable = (window as any).ipcRenderer.on('update-available', (info: any) => {
+        setUpdateInfo(info);
+        setUpdateStatus('available');
+      });
+      const cleanupProgress = (window as any).ipcRenderer.on('update-download-progress', (progress: any) => {
+        setUpdateProgress(progress);
+        setUpdateStatus('downloading');
+      });
+      const cleanupDownloaded = (window as any).ipcRenderer.on('update-downloaded', () => {
+        setUpdateStatus('downloaded');
+      });
+
+      return () => {
+        if (typeof cleanupAvailable === 'function') cleanupAvailable();
+        if (typeof cleanupProgress === 'function') cleanupProgress();
+        if (typeof cleanupDownloaded === 'function') cleanupDownloaded();
+      };
+    }
+  }, []);
 
   const handleLoginSuccess = (loggedInUser: User) => {
     localStorage.setItem('user', JSON.stringify(loggedInUser));
@@ -631,6 +659,53 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* 自动更新弹窗 */}
+      {updateStatus !== 'idle' && (
+        <div className="fixed top-4 right-4 sm:top-24 sm:right-8 z-[200] w-[320px] bg-slate-900/95 backdrop-blur-xl border border-primary/50 shadow-2xl shadow-primary/20 rounded-2xl p-5 animate-in slide-in-from-right-8 fade-in duration-500">
+          <div className="flex items-start gap-4">
+            <div className={`p-2 rounded-xl flex-shrink-0 ${updateStatus === 'downloaded' ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
+              <span className="material-icons">{updateStatus === 'downloaded' ? 'system_update' : 'cloud_download'}</span>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-white font-bold text-sm mb-1">
+                {updateStatus === 'available' ? '发现新版本' : updateStatus === 'downloading' ? '正在下载更新' : '更新已准备就绪'}
+              </h4>
+              <p className="text-slate-400 text-xs mb-3">
+                {updateStatus === 'available' ? `版本 ${updateInfo.version} 已发布` : updateStatus === 'downloading' ? '下载完成后将提示您重启安装' : '一键重启完成版本升级'}
+              </p>
+
+              {updateStatus === 'available' && (
+                <div className="flex gap-2">
+                  <button onClick={() => { setUpdateStatus('idle'); (window as any).ipcRenderer?.send('download-update'); }} className="flex-1 py-1.5 bg-primary hover:brightness-110 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-primary/20">
+                    立即更新
+                  </button>
+                  <button onClick={() => setUpdateStatus('idle')} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
+                    稍后
+                  </button>
+                </div>
+              )}
+
+              {updateStatus === 'downloading' && (
+                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-primary h-1.5 rounded-full transition-all duration-300" style={{ width: `${updateProgress.percent}%` }}></div>
+                </div>
+              )}
+
+              {updateStatus === 'downloaded' && (
+                <div className="flex gap-2">
+                  <button onClick={() => (window as any).ipcRenderer?.send('install-update')} className="flex-1 py-1.5 bg-success hover:brightness-110 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-success/20">
+                    立即重启安装
+                  </button>
+                  <button onClick={() => setUpdateStatus('idle')} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
+                    稍后
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {user && (
         <Header
           viewMode={viewMode}
