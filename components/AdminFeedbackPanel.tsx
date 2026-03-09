@@ -11,7 +11,7 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [replyContent, setReplyContent] = useState('');
-    const [replyingTo, setReplyingTo] = useState<number | null>(null);
+    const [replyingTo, setReplyingTo] = useState<number | string | null>(null);
 
     useEffect(() => {
         loadFeedbacks();
@@ -32,18 +32,19 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
         }
     };
 
-    const handleReply = async (targetUserId: number) => {
+    const handleReply = async (targetUserId: number, feedbackId: number | string) => {
         if (!replyContent.trim()) return;
         try {
             const res = await fetch(`${API_BASE_URL}/admin/reply?user_id=${user.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_user_id: targetUserId, content: replyContent })
+                body: JSON.stringify({ target_user_id: targetUserId, content: replyContent, feedback_id: feedbackId })
             });
             if (res.ok) {
                 alert('系统消息发送成功！');
                 setReplyContent('');
                 setReplyingTo(null);
+                loadFeedbacks();
             } else {
                 alert('发送失败，请重试');
             }
@@ -89,7 +90,7 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
                                     {fb.content}
                                 </div>
 
-                                {replyingTo === fb.user_id ? (
+                                {replyingTo === fb.id ? (
                                     <div className="space-y-3 mt-4 border-t border-white/5 pt-4">
                                         <textarea
                                             value={replyContent}
@@ -100,7 +101,7 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
                                         <div className="flex justify-end gap-3">
                                             <button onClick={() => setReplyingTo(null)} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors">取消</button>
                                             <button
-                                                onClick={() => handleReply(fb.user_id)}
+                                                onClick={() => handleReply(fb.user_id, fb.id)}
                                                 disabled={!replyContent.trim()}
                                                 className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50"
                                             >
@@ -110,13 +111,15 @@ export const AdminFeedbackPanel: React.FC<AdminFeedbackPanelProps> = ({ user, on
                                     </div>
                                 ) : (
                                     <div className="flex justify-end mt-2">
-                                        <button
-                                            onClick={() => { setReplyingTo(fb.user_id); setReplyContent(''); }}
-                                            className="text-xs text-amber-500 font-bold hover:text-amber-400 flex items-center gap-1"
-                                        >
-                                            <span className="material-icons text-[14px]">reply</span>
-                                            回复用户
-                                        </button>
+                                        {fb.status === 'pending' && (
+                                            <button
+                                                onClick={() => { setReplyingTo(fb.id); setReplyContent(''); }}
+                                                className="text-xs text-amber-500 font-bold hover:text-amber-400 flex items-center gap-1"
+                                            >
+                                                <span className="material-icons text-[14px]">reply</span>
+                                                回复用户
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>

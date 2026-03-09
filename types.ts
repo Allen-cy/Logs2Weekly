@@ -64,7 +64,7 @@ export interface User {
   email_verified?: boolean;
 }
 
-export type ViewMode = 'dashboard' | 'review' | 'setup' | 'login' | 'register' | 'profile' | 'insights' | 'history' | 'inbox' | 'archive' | 'todos';
+export type ViewMode = 'dashboard' | 'review' | 'setup' | 'login' | 'register' | 'profile' | 'insights' | 'history' | 'inbox' | 'archive' | 'todos' | 'messages';
 
 export type TodoList = 'all' | 'today' | 'planned' | 'completed' | string;
 

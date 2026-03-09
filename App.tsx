@@ -19,6 +19,9 @@ import InboxView from './components/InboxView';
 import ArchiveView from './components/ArchiveView';
 import TodoView from './components/TodoView';
 import TodoReminderModal from './components/TodoReminderModal';
+import MessagesView from './components/MessagesView';
+import FeedbackModal from './components/FeedbackModal';
+import NotificationToast from './components/NotificationToast';
 import { Todo, TodoPriority } from './types';
 
 const App: React.FC = () => {
@@ -41,11 +44,31 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTodoReminder, setShowTodoReminder] = useState(false);
   const [overdueTodos, setOverdueTodos] = useState<Todo[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotificationToast, setShowNotificationToast] = useState(false);
+  const [showFeedbackFromMessages, setShowFeedbackFromMessages] = useState(false);
 
   const handleLoginSuccess = (loggedInUser: User) => {
     localStorage.setItem('user', JSON.stringify(loggedInUser));
     setUser(loggedInUser);
     setViewMode('dashboard');
+    // 登录时检查未读通知
+    checkUnreadNotifications(loggedInUser.id);
+  };
+
+  const checkUnreadNotifications = async (userId: number) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/messages/unread-count?user_id=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.count || 0);
+        if (data.count > 0) {
+          setShowNotificationToast(true);
+        }
+      }
+    } catch (e) {
+      console.error('Check unread failed', e);
+    }
   };
 
   // 0. 初始化：仅在挂载时从本地存储恢复用户信息
@@ -64,6 +87,9 @@ const App: React.FC = () => {
             setShowUpdateHistory(true);
             localStorage.setItem('lastSeenVersion', APP_VERSION);
           }
+
+          // 检查未读通知
+          checkUnreadNotifications(parsedUser.id);
         }
       } catch (e) {
         console.error("Failed to parse stored user", e);
@@ -585,6 +611,18 @@ const App: React.FC = () => {
         />
       )}
 
+      {showNotificationToast && (
+        <NotificationToast
+          count={unreadCount}
+          onView={() => { setShowNotificationToast(false); setViewMode('messages'); }}
+          onDismiss={() => setShowNotificationToast(false)}
+        />
+      )}
+
+      {showFeedbackFromMessages && user && (
+        <FeedbackModal userId={user.id} onClose={() => setShowFeedbackFromMessages(false)} />
+      )}
+
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {viewMode === 'register' && (
           <RegisterView
@@ -624,6 +662,7 @@ const App: React.FC = () => {
             onUpdateConfig={setConfig}
             onLogout={handleLogout}
             onBack={() => setViewMode('dashboard')}
+            onViewMessages={() => { setViewMode('messages'); setShowNotificationToast(false); }}
           />
         )}
 
@@ -686,6 +725,14 @@ const App: React.FC = () => {
           />
         )}
 
+        {viewMode === 'messages' && user && (
+          <MessagesView
+            user={user}
+            onBack={() => setViewMode('profile')}
+            onOpenFeedback={() => setShowFeedbackFromMessages(true)}
+          />
+        )}
+
         {viewMode === 'review' && <ReviewView summary={summary} user={user} />}
 
         {viewMode === 'insights' && <InsightsView logs={logs} />}
@@ -714,16 +761,6 @@ const App: React.FC = () => {
               <span className="material-icons text-xl">checklist</span>
             </div>
             <span className="text-[10px] font-black uppercase tracking-tighter">待办</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode('inbox')}
-            className={`flex flex-col items-center gap-1 transition-all ${viewMode === 'inbox' ? 'text-primary scale-110' : 'text-slate-500'}`}
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${viewMode === 'inbox' ? 'bg-primary/20' : ''}`}>
-              <span className="material-icons text-xl">inventory_2</span>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-tighter">碎片</span>
           </button>
 
           <button

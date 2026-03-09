@@ -36,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({
               <span className="material-icons text-xl">rocket_launch</span>
             </div>
             <div className="hidden lg:block">
-              <h1 className="text-lg font-black text-white tracking-tight">AI Productivity Hub</h1>
+              <h1 className="text-lg font-black text-white tracking-tight">Logs2Weekly</h1>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kimi & Gemini Integrated</span>

@@ -644,6 +644,7 @@ class FeedbackEntry(BaseModel):
 class AdminReplyRequest(BaseModel):
     target_user_id: int
     content: str
+    feedback_id: Optional[str] = None
 
 @app.post("/api/feedbacks")
 async def submit_feedback(feedback: FeedbackEntry):
@@ -688,13 +689,64 @@ async def admin_reply(req: AdminReplyRequest, user_id: int = Query(...)):
             "status": "unread",
             "tags": ["system_reply"]
         }
+        if req.feedback_id:
+            notify_data["parent_id"] = str(req.feedback_id)
+            
         response = client.table("logs").insert(notify_data).execute()
         
-        # 顺便把所有该用户的 pending feedback 改为 replied？可选操作。
+        # 将被回复的 feedback 置为已处理
+        if req.feedback_id:
+            client.table("logs").update({"status": "replied"}).eq("id", req.feedback_id).execute()
+            
         return {"success": True, "data": response.data[0] if response.data else None}
     except Exception as e:
         print(f"Reply user error: {e}")
         raise HTTPException(status_code=500, detail="发送通知失败")
+
+# --- 消息管理 ---
+
+@app.get("/api/messages")
+async def get_user_messages(user_id: int = Query(...)):
+    """获取用户的反馈历史和收到的系统通知"""
+    try:
+        client = get_supabase()
+        # 获取用户自己发的反馈
+        fb_resp = client.table("logs").select("*").eq("user_id", user_id).eq("type", "feedback").order("timestamp", desc=True).execute()
+        # 获取用户收到的系统通知
+        notif_resp = client.table("logs").select("*").eq("user_id", user_id).eq("type", "notification").order("timestamp", desc=True).execute()
+        return {
+            "feedbacks": fb_resp.data if fb_resp.data else [],
+            "notifications": notif_resp.data if notif_resp.data else []
+        }
+    except Exception as e:
+        print(f"Get messages error: {e}")
+        raise HTTPException(status_code=500, detail="获取消息失败")
+
+class MarkReadRequest(BaseModel):
+    ids: List[int]
+
+@app.post("/api/messages/mark-read")
+async def mark_messages_read(req: MarkReadRequest, user_id: int = Query(...)):
+    """标记通知为已读"""
+    try:
+        client = get_supabase()
+        for nid in req.ids:
+            client.table("logs").update({"status": "read"}).eq("id", nid).eq("user_id", user_id).execute()
+        return {"success": True}
+    except Exception as e:
+        print(f"Mark read error: {e}")
+        raise HTTPException(status_code=500, detail="标记已读失败")
+
+@app.get("/api/messages/unread-count")
+async def get_unread_count(user_id: int = Query(...)):
+    """获取未读通知数量"""
+    try:
+        client = get_supabase()
+        resp = client.table("logs").select("id").eq("user_id", user_id).eq("type", "notification").eq("status", "unread").execute()
+        return {"count": len(resp.data) if resp.data else 0}
+    except Exception as e:
+        print(f"Unread count error: {e}")
+        return {"count": 0}
 
 
 # --- 待办事项 (Todos) ---

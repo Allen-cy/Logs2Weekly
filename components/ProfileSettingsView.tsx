@@ -12,6 +12,7 @@ interface ProfileSettingsViewProps {
     onUpdateConfig: (config: AppConfig) => void;
     onLogout: () => void;
     onBack: () => void;
+    onViewMessages?: () => void;
 }
 
 const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
@@ -20,7 +21,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     config,
     onUpdateConfig,
     onLogout,
-    onBack
+    onBack,
+    onViewMessages
 }) => {
     const [username, setUsername] = useState(user.username);
     const [email, setEmail] = useState(user.email || '');
@@ -319,6 +321,22 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                 </div>
                             </div>
                             <span className="material-icons text-slate-600 group-hover:text-primary transition-colors">chevron_right</span>
+                        </button>
+
+                        <button
+                            onClick={onViewMessages}
+                            className="flex-1 bg-slate-900/40 backdrop-blur-xl border border-white/5 hover:bg-white/5 transition-colors rounded-2xl p-6 shadow-xl flex items-center justify-between group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <span className="material-icons">forum</span>
+                                </div>
+                                <div className="text-left">
+                                    <h4 className="text-white font-bold text-sm">消息管理</h4>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">查看系统通知与反馈记录</p>
+                                </div>
+                            </div>
+                            <span className="material-icons text-slate-600 group-hover:text-blue-500 transition-colors">chevron_right</span>
                         </button>
 
                         <button
