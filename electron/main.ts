@@ -91,28 +91,75 @@ function createWindow() {
     })
 }
 
-let currentHotkey = 'Alt+M'
+let currentHotkey = 'CommandOrControl+M'
+let quickWin: BrowserWindow | null = null
 
-function registerGlobalShortcuts(hotkey: string = 'Alt+M') {
+function createQuickWindow() {
+    quickWin = new BrowserWindow({
+        width: 600,
+        height: 120,
+        frame: false,
+        transparent: true,
+        show: false,
+        hasShadow: false,
+        alwaysOnTop: true,
+        resizable: false,
+        skipTaskbar: true,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true,
+            contextIsolation: true,
+            webSecurity: false,
+        },
+    })
+
+    if (VITE_DEV_SERVER_URL) {
+        quickWin.loadURL(`${VITE_DEV_SERVER_URL}/#quick`)
+    } else {
+        quickWin.loadFile(path.join(RENDERER_DIST, 'index.html'), { hash: 'quick' })
+    }
+
+    quickWin.on('blur', () => {
+        quickWin?.hide()
+    })
+}
+
+function registerGlobalShortcuts(hotkey: string = 'CommandOrControl+M') {
     try {
         globalShortcut.unregisterAll()
-        const success = globalShortcut.register(hotkey, () => {
-            if (!win) return
-            if (win.isVisible() && win.isFocused()) {
-                win.hide()
+        
+        // 应对因为不同平台可能配置的是 Ctrl+M 或 CommandOrControl+M
+        const targetHotkey = hotkey.replace(/Ctrl/ig, 'CommandOrControl');
+
+        const successLog = globalShortcut.register(targetHotkey, () => {
+            if (!quickWin) createQuickWindow()
+            if (quickWin?.isVisible() && quickWin?.isFocused()) {
+                quickWin.hide()
             } else {
-                win.show()
-                win.focus()
-                win.webContents.send('focus-add-log', true)
+                quickWin?.show()
+                quickWin?.focus()
+                quickWin?.webContents.send('set-quick-mode', 'log')
             }
         })
-        if (success) {
-            currentHotkey = hotkey
-            console.log(`Global shortcut registered: ${hotkey}`)
+
+        const successTodo = globalShortcut.register('CommandOrControl+J', () => {
+            if (!quickWin) createQuickWindow()
+            if (quickWin?.isVisible() && quickWin?.isFocused()) {
+                quickWin.hide()
+            } else {
+                quickWin?.show()
+                quickWin?.focus()
+                quickWin?.webContents.send('set-quick-mode', 'todo')
+            }
+        })
+
+        if (successLog || successTodo) {
+            currentHotkey = targetHotkey
+            console.log(`Global shortcuts registered: Log=${targetHotkey}, Todo=CommandOrControl+J`)
         } else {
-            console.error(`Failed to register shortcut: ${hotkey}`)
+            console.error(`Failed to register shortcut: ${targetHotkey}`)
         }
-        return success
+        return successLog
     } catch (e) {
         console.error('Error registering shortcut', e)
         return false
@@ -122,6 +169,17 @@ function registerGlobalShortcuts(hotkey: string = 'Alt+M') {
 ipcMain.on('set-hotkey', (event, hotkey) => {
     const success = registerGlobalShortcuts(hotkey)
     event.reply('set-hotkey-result', { success, hotkey })
+})
+
+ipcMain.on('quick-submit', (event, data) => {
+    if (win) {
+        win.webContents.send('execute-quick-submit', data)
+    }
+    quickWin?.hide()
+})
+
+ipcMain.on('quick-hide', () => {
+    quickWin?.hide()
 })
 
 ipcMain.on('toggle-always-on-top', (_event, flag) => {

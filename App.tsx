@@ -592,6 +592,29 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddLogRef = React.useRef(handleAddLog);
+  const handleAddTodoRef = React.useRef(handleAddTodo);
+  
+  useEffect(() => {
+    handleAddLogRef.current = handleAddLog;
+    handleAddTodoRef.current = handleAddTodo;
+  });
+
+  useEffect(() => {
+    if ((window as any).ipcRenderer) {
+      const cleanup = (window as any).ipcRenderer.on('execute-quick-submit', (data: any) => {
+        if (data.type === 'log') {
+          handleAddLogRef.current(data.content);
+        } else if (data.type === 'todo') {
+          handleAddTodoRef.current(data.content, "未分类待办");
+        }
+      });
+      return () => {
+        if (typeof cleanup === 'function') cleanup();
+      };
+    }
+  }, []);
+
   const handleExportNotebookLM = async () => {
     let reportsData: any[] = [];
     if (user) {
