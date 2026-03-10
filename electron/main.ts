@@ -132,12 +132,16 @@ function registerGlobalShortcuts(logHotkey: string = 'CommandOrControl+M', todoH
         globalShortcut.unregisterAll()
         
         const normalize = (key: string) => {
-            if (key.includes('CommandOrControl') || key.includes('CmdOrCtrl')) return key;
-            return key.replace(/Control|Ctrl|Cmd/gi, 'CommandOrControl');
+            // Respect the user's choice: if they recorded "Control", don't force "CommandOrControl" on Mac
+            // because "CommandOrControl" on Mac maps to "Command", while "Control" maps to "Control".
+            return key.replace(/Cmd/ig, 'Command').replace(/Ctrl/ig, 'Control');
         };
 
         const targetLog = normalize(logHotkey);
         const targetTodo = normalize(todoHotkey);
+        
+        currentHotkey = targetLog;
+        currentTodoHotkey = targetTodo;
 
         globalShortcut.register(targetLog, () => {
             if (!quickWin) {

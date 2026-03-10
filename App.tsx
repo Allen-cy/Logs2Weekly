@@ -614,7 +614,7 @@ const App: React.FC = () => {
         if (data.type === 'log') {
           handleAddLogRef.current(data.content);
         } else if (data.type === 'todo') {
-          handleAddTodoRef.current(data.content, "未分类待办");
+          handleAddTodoRef.current(data.content, "未分类待办", data.priority);
         }
       });
       return () => {

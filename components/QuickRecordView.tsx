@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { TodoPriority } from '../types';
 
 type QuickMode = 'log' | 'todo';
 
 const QuickRecordView: React.FC = () => {
   const [mode, setMode] = useState<QuickMode>('log');
   const [content, setContent] = useState('');
+  const [priority, setPriority] = useState<TodoPriority>(TodoPriority.P3);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,9 +37,14 @@ const QuickRecordView: React.FC = () => {
     if (!content.trim()) return;
     
     if ((window as any).ipcRenderer) {
-      (window as any).ipcRenderer.send('quick-submit', { type: mode, content: content.trim() });
+      (window as any).ipcRenderer.send('quick-submit', { 
+        type: mode, 
+        content: content.trim(),
+        priority: mode === 'todo' ? priority : undefined
+      });
     }
     setContent('');
+    setPriority(TodoPriority.P3); // 重置优先级
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -52,10 +59,31 @@ const QuickRecordView: React.FC = () => {
     <div className="h-screen w-screen flex flex-col p-4 bg-transparent border border-primary/20 rounded-xl overflow-hidden shadow-2xl" style={{ WebkitAppRegion: 'drag' } as any}>
       <form onSubmit={handleSubmit} className="flex-1 bg-slate-900/95 backdrop-blur-xl rounded-lg p-4 flex flex-col gap-3 shadow-[0_0_15px_rgba(0,0,0,0.5)] border border-slate-700" style={{ WebkitAppRegion: 'no-drag' } as any}>
         <div className="flex justify-between items-center text-xs font-semibold">
-          <span className={mode === 'log' ? 'text-primary' : 'text-success'}>
-            {mode === 'log' ? '📝 极速记录 (Log)' : '✅ 极速待办 (Todo)'}
-          </span>
-          <span className="text-[10px] text-slate-500">Esc 隐藏 • Enter 提交 (可拖拽标题栏)</span>
+          <div className="flex items-center gap-3">
+            <span className={mode === 'log' ? 'text-primary' : 'text-success'}>
+              {mode === 'log' ? '📝 极速记录 (Log)' : '✅ 极速待办 (Todo)'}
+            </span>
+            {mode === 'todo' && (
+              <div className="flex items-center gap-1.5 p-1 bg-slate-800/50 rounded-lg border border-white/5">
+                {[
+                  { p: TodoPriority.P0, color: 'bg-red-500', label: 'P0' },
+                  { p: TodoPriority.P1, color: 'bg-orange-500', label: 'P1' },
+                  { p: TodoPriority.P2, color: 'bg-green-500', label: 'P2' },
+                  { p: TodoPriority.P3, color: 'bg-slate-500', label: 'P3' },
+                ].map((item) => (
+                  <button
+                    key={item.p}
+                    type="button"
+                    onClick={() => setPriority(item.p)}
+                    className={`w-5 h-5 rounded-md text-[8px] font-black flex items-center justify-center transition-all ${priority === item.p ? `${item.color} text-white scale-110 shadow-lg` : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <span className="text-[10px] text-slate-500">Esc 隐藏 • Enter 提交</span>
         </div>
         <div className="relative flex items-center">
           {mode === 'todo' && (
