@@ -131,8 +131,13 @@ function registerGlobalShortcuts(logHotkey: string = 'CommandOrControl+M', todoH
     try {
         globalShortcut.unregisterAll()
         
-        const targetLog = logHotkey.replace(/Ctrl/ig, 'CommandOrControl');
-        const targetTodo = todoHotkey.replace(/Ctrl/ig, 'CommandOrControl');
+        const normalize = (key: string) => {
+            if (key.includes('CommandOrControl') || key.includes('CmdOrCtrl')) return key;
+            return key.replace(/Control|Ctrl|Cmd/gi, 'CommandOrControl');
+        };
+
+        const targetLog = normalize(logHotkey);
+        const targetTodo = normalize(todoHotkey);
 
         globalShortcut.register(targetLog, () => {
             if (!quickWin) {
@@ -196,6 +201,8 @@ ipcMain.on('quick-submit', (event, data) => {
     if (win) {
         win.webContents.send('execute-quick-submit', data)
     }
+    // Optional: bring main window to front for feedback? 
+    // No, stay unobtrusive as per user request.
     quickWin?.hide()
 })
 

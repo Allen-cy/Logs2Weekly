@@ -14,9 +14,13 @@ const QuickRecordView: React.FC = () => {
 
     if ((window as any).ipcRenderer) {
       const cleanup = (window as any).ipcRenderer.on('set-quick-mode', (_mode: QuickMode) => {
+        console.log('Switching quick mode to:', _mode);
         setMode(_mode);
         setContent('');
-        setTimeout(() => inputRef.current?.focus(), 50);
+        // 给渲染一点时间再聚焦
+        requestAnimationFrame(() => {
+          setTimeout(() => inputRef.current?.focus(), 100);
+        });
       });
       return () => {
         if (typeof cleanup === 'function') cleanup();
@@ -55,18 +59,19 @@ const QuickRecordView: React.FC = () => {
         </div>
         <div className="relative flex items-center">
           {mode === 'todo' && (
-            <div className="absolute left-4 z-10 text-success flex items-center">
-              <span className="material-icons text-lg">check_box_outline_blank</span>
+            <div className="absolute left-4 z-10 text-success flex items-center drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]">
+              <span className="material-icons text-xl">add_task</span>
             </div>
           )}
           <input
             ref={inputRef}
-            className={`w-full bg-slate-800/80 border border-slate-700/80 text-white rounded-xl py-3 outline-none focus:ring-2 focus:ring-primary/50 text-sm shadow-inner transition-all ${mode === 'todo' ? 'pl-11 pr-4' : 'px-4'}`}
+            className={`w-full bg-slate-800/80 border text-white rounded-xl py-4 outline-none focus:ring-2 focus:ring-primary/50 text-base shadow-inner transition-all ${mode === 'todo' ? 'pl-12 pr-4 border-success/30' : 'px-4 border-slate-700/80'}`}
             placeholder={mode === 'log' ? "输入你想记录的任何想法..." : "输入你要做的待办事项..."}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter') {
+                if (e.shiftKey) return; // Allow multiline if we want, but input is single line
                 e.preventDefault();
                 handleSubmit(e as any);
               } else {

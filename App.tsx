@@ -478,6 +478,9 @@ const App: React.FC = () => {
           // 更新 ID 到真实 ID
           setTodos(prev => prev.map(t => t.id === newTodo.id ? { ...t, id: String(saved.id) } : t));
         }
+        
+        // 为极速待办添加日志标记，使其在 Dashboard 可见
+        await handleAddLog(`- [ ] ${content}${listName !== '临时待办' ? ` (${listName})` : ''}`);
       } catch (err) {
         console.error("Save todo to backend failed", err);
       }
@@ -601,10 +604,9 @@ const App: React.FC = () => {
   const handleAddLogRef = React.useRef(handleAddLog);
   const handleAddTodoRef = React.useRef(handleAddTodo);
   
-  useEffect(() => {
-    handleAddLogRef.current = handleAddLog;
-    handleAddTodoRef.current = handleAddTodo;
-  });
+  // 保持引用最新，避免闭包陈旧
+  handleAddLogRef.current = handleAddLog;
+  handleAddTodoRef.current = handleAddTodo;
 
   useEffect(() => {
     if ((window as any).ipcRenderer) {
