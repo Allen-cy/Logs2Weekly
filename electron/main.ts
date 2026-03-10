@@ -92,9 +92,12 @@ function createWindow() {
 }
 
 let currentHotkey = 'CommandOrControl+M'
+let currentTodoHotkey = 'CommandOrControl+J'
 let quickWin: BrowserWindow | null = null
 
 function createQuickWindow() {
+    if (quickWin) return;
+    
     quickWin = new BrowserWindow({
         width: 600,
         height: 120,
@@ -124,51 +127,69 @@ function createQuickWindow() {
     })
 }
 
-function registerGlobalShortcuts(hotkey: string = 'CommandOrControl+M') {
+function registerGlobalShortcuts(logHotkey: string = 'CommandOrControl+M', todoHotkey: string = 'CommandOrControl+J') {
     try {
         globalShortcut.unregisterAll()
         
-        // 应对因为不同平台可能配置的是 Ctrl+M 或 CommandOrControl+M
-        const targetHotkey = hotkey.replace(/Ctrl/ig, 'CommandOrControl');
+        const targetLog = logHotkey.replace(/Ctrl/ig, 'CommandOrControl');
+        const targetTodo = todoHotkey.replace(/Ctrl/ig, 'CommandOrControl');
 
-        const successLog = globalShortcut.register(targetHotkey, () => {
-            if (!quickWin) createQuickWindow()
-            if (quickWin?.isVisible() && quickWin?.isFocused()) {
-                quickWin.hide()
+        globalShortcut.register(targetLog, () => {
+            if (!quickWin) {
+                createQuickWindow();
+                quickWin?.once('ready-to-show', () => {
+                    quickWin?.show();
+                    quickWin?.focus();
+                    quickWin?.webContents.send('set-quick-mode', 'log');
+                });
             } else {
-                quickWin?.show()
-                quickWin?.focus()
-                quickWin?.webContents.send('set-quick-mode', 'log')
+                if (quickWin.isVisible() && quickWin.isFocused()) {
+                    quickWin.hide();
+                } else {
+                    quickWin.show();
+                    quickWin.focus();
+                    quickWin.webContents.send('set-quick-mode', 'log');
+                }
             }
         })
 
-        const successTodo = globalShortcut.register('CommandOrControl+J', () => {
-            if (!quickWin) createQuickWindow()
-            if (quickWin?.isVisible() && quickWin?.isFocused()) {
-                quickWin.hide()
+        globalShortcut.register(targetTodo, () => {
+            if (!quickWin) {
+                createQuickWindow();
+                quickWin?.once('ready-to-show', () => {
+                    quickWin?.show();
+                    quickWin?.focus();
+                    quickWin?.webContents.send('set-quick-mode', 'todo');
+                });
             } else {
-                quickWin?.show()
-                quickWin?.focus()
-                quickWin?.webContents.send('set-quick-mode', 'todo')
+                if (quickWin.isVisible() && quickWin.isFocused()) {
+                    quickWin.hide();
+                } else {
+                    quickWin.show();
+                    quickWin.focus();
+                    quickWin.webContents.send('set-quick-mode', 'todo');
+                }
             }
         })
 
-        if (successLog || successTodo) {
-            currentHotkey = targetHotkey
-            console.log(`Global shortcuts registered: Log=${targetHotkey}, Todo=CommandOrControl+J`)
-        } else {
-            console.error(`Failed to register shortcut: ${targetHotkey}`)
-        }
-        return successLog
+        currentHotkey = targetLog;
+        currentTodoHotkey = targetTodo;
+        console.log(`Shortcuts registered: Log=${targetLog}, Todo=${targetTodo}`);
+        return true;
     } catch (e) {
-        console.error('Error registering shortcut', e)
+        console.error('Error registering shortcuts', e)
         return false
     }
 }
 
 ipcMain.on('set-hotkey', (event, hotkey) => {
-    const success = registerGlobalShortcuts(hotkey)
+    const success = registerGlobalShortcuts(hotkey, currentTodoHotkey)
     event.reply('set-hotkey-result', { success, hotkey })
+})
+
+ipcMain.on('set-todo-hotkey', (event, hotkey) => {
+    const success = registerGlobalShortcuts(currentHotkey, hotkey)
+    event.reply('set-todo-hotkey-result', { success, hotkey })
 })
 
 ipcMain.on('quick-submit', (event, data) => {

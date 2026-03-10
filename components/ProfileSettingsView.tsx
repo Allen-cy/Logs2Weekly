@@ -30,7 +30,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [newPassword, setNewPassword] = useState('');
     const [retentionDays, setRetentionDays] = useState(config.archiveRetentionDays || 15);
     const [hotkey, setHotkey] = useState(config.globalHotkey || 'Alt+M');
-    const [isRecording, setIsRecording] = useState(false);
+    const [todoHotkey, setTodoHotkey] = useState(config.todoHotkey || 'Alt+J');
+    const [recordingTarget, setRecordingTarget] = useState<'log' | 'todo' | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [showUpdateHistory, setShowUpdateHistory] = useState(false);
@@ -294,96 +295,147 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
 
                             {/* 桌面端快捷键设置 - 录制器模式 */}
                             {typeof window !== 'undefined' && (window as any).ipcRenderer && (
-                                <div className="space-y-4 pt-6 border-t border-white/5">
-                                    <div className="flex justify-between items-end ml-4">
-                                        <div>
-                                            <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">
-                                                <span className="material-icons text-xs text-primary">keyboard</span>
-                                                全局呼出快捷键
-                                            </label>
-                                            <p className="text-[10px] text-slate-400 mt-1">默认: Option+M (Alt+M)</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => setIsRecording(true)}
-                                                className={`px-4 py-2 rounded-xl font-bold text-[10px] transition-all flex items-center gap-1.5 ${isRecording ? 'bg-primary text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                                            >
-                                                <span className="material-icons text-sm">{isRecording ? 'stop_circle' : 'fiber_manual_record'}</span>
-                                                {isRecording ? '正在录制...' : '录制新热键'}
-                                            </button>
-                                            {hotkey !== 'Alt+M' && (
+                                <div className="space-y-6 pt-6 border-t border-white/5">
+                                    {/* Log Hotkey */}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-end ml-4">
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">
+                                                    <span className="material-icons text-xs text-primary">edit_note</span>
+                                                    极速记录呼出热键 (Log)
+                                                </label>
+                                                <p className="text-[10px] text-slate-400 mt-1">当前: {hotkey}</p>
+                                            </div>
+                                            <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => {
-                                                        const defaultKey = 'Alt+M';
-                                                        setHotkey(defaultKey);
-                                                        (window as any).ipcRenderer.send('set-hotkey', defaultKey);
-                                                        onUpdateConfig({ ...config, globalHotkey: defaultKey });
-                                                        setMessage({ type: 'success', text: '已恢复默认热键' });
-                                                    }}
-                                                    className="px-4 py-2 rounded-xl bg-slate-800 text-slate-500 hover:text-white font-bold text-[10px] transition-all"
+                                                    onClick={() => setRecordingTarget('log')}
+                                                    className={`px-4 py-2 rounded-xl font-bold text-[10px] transition-all flex items-center gap-1.5 ${recordingTarget === 'log' ? 'bg-primary text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                                                 >
-                                                    恢复默认
+                                                    <span className="material-icons text-sm">{recordingTarget === 'log' ? 'stop_circle' : 'fiber_manual_record'}</span>
+                                                    {recordingTarget === 'log' ? '正在录制...' : '录制新热键'}
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* 录制或输入区域 */}
-                                    <div className="px-4 relative group">
-                                        <div className={`w-full bg-slate-950/60 border-2 rounded-2xl py-6 flex items-center justify-center transition-all ${isRecording ? 'border-primary ring-4 ring-primary/20 shadow-2xl' : 'border-slate-800 hover:border-slate-700'}`}>
-                                            <span className="text-3xl font-black text-white tracking-widest font-mono uppercase">
-                                                {hotkey}
-                                            </span>
-                                            {isRecording && (
-                                                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 rounded-2xl">
-                                                    <div className="text-center">
-                                                        <p className="text-primary font-black text-sm mb-2 animate-bounce">请按下组合键</p>
-                                                        <p className="text-slate-500 text-[10px]">支持 Cmd/Alt/Shift/Control + 按键</p>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setIsRecording(false); }}
-                                                            className="mt-4 text-[10px] text-slate-600 underline"
-                                                        >
-                                                            取消录制
-                                                        </button>
+                                        <div className="px-4 relative group">
+                                            <div className={`w-full bg-slate-950/60 border-2 rounded-2xl py-6 flex items-center justify-center transition-all ${recordingTarget === 'log' ? 'border-primary ring-4 ring-primary/20 shadow-2xl' : 'border-slate-800 hover:border-slate-700'}`}>
+                                                <span className="text-3xl font-black text-white tracking-widest font-mono uppercase">
+                                                    {hotkey}
+                                                </span>
+                                                {recordingTarget === 'log' && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 rounded-2xl z-10">
+                                                        <div className="text-center">
+                                                            <p className="text-primary font-black text-sm mb-2 animate-bounce">请按下组合键</p>
+                                                            <p className="text-slate-500 text-[10px]">支持 Cmd/Alt/Shift/Control + 按键</p>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setRecordingTarget(null); }}
+                                                                className="mt-4 text-[10px] text-slate-600 underline"
+                                                            >
+                                                                取消录制
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            autoFocus
+                                                            className="absolute inset-0 opacity-0 cursor-default"
+                                                            onKeyDown={(e) => {
+                                                                e.preventDefault();
+                                                                const keys = [];
+                                                                if (e.metaKey) keys.push('Cmd');
+                                                                if (e.ctrlKey) keys.push('Control');
+                                                                if (e.altKey) keys.push('Alt');
+                                                                if (e.shiftKey) keys.push('Shift');
+                                                                const key = e.key === ' ' ? 'Space' : e.key;
+                                                                if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+                                                                    const newHotkey = [...keys, key.charAt(0).toUpperCase() + key.slice(1)].join('+');
+                                                                    setHotkey(newHotkey);
+                                                                    setRecordingTarget(null);
+                                                                    (window as any).ipcRenderer.send('set-hotkey', newHotkey);
+                                                                    (window as any).ipcRenderer.once('set-hotkey-result', (_: any, res: { success: boolean, hotkey: string }) => {
+                                                                        if (res.success) {
+                                                                            setMessage({ type: 'success', text: `记录热键已激活: ${res.hotkey}` });
+                                                                        } else {
+                                                                            setMessage({ type: 'error', text: `注册失败，可能是系统冲突` });
+                                                                        }
+                                                                    });
+                                                                }
+                                                            }}
+                                                        />
                                                     </div>
-                                                    <input
-                                                        autoFocus
-                                                        className="absolute inset-0 opacity-0 cursor-default"
-                                                        onKeyDown={(e) => {
-                                                            e.preventDefault();
-                                                            const keys = [];
-                                                            if (e.metaKey) keys.push('Cmd');
-                                                            if (e.ctrlKey) keys.push('Control');
-                                                            if (e.altKey) keys.push('Alt');
-                                                            if (e.shiftKey) keys.push('Shift');
-
-                                                            // 获取主键
-                                                            const key = e.key === ' ' ? 'Space' : e.key;
-
-                                                            // 排除只有修饰键的情况
-                                                            if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
-                                                                const newHotkey = [...keys, key.charAt(0).toUpperCase() + key.slice(1)].join('+');
-                                                                setHotkey(newHotkey);
-                                                                setIsRecording(false);
-
-                                                                // 自动测试激活
-                                                                (window as any).ipcRenderer.send('set-hotkey', newHotkey);
-                                                                (window as any).ipcRenderer.once('set-hotkey-result', (_: any, res: { success: boolean, hotkey: string }) => {
-                                                                    if (res.success) {
-                                                                        setMessage({ type: 'success', text: `热键已录制并激活: ${res.hotkey}` });
-                                                                        onUpdateConfig({ ...config, globalHotkey: res.hotkey });
-                                                                    } else {
-                                                                        setMessage({ type: 'error', text: `注册失败，可能是系统冲突或格式不支持` });
-                                                                    }
-                                                                });
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                    <p className="text-[9px] text-slate-600 ml-4 italic">* "双击" 快捷键在 Electron 标准库中由于系统权限限制暂不支持，建议使用组合键形式。</p>
+
+                                    {/* Todo Hotkey */}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-end ml-4">
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">
+                                                    <span className="material-icons text-xs text-success">task_alt</span>
+                                                    极速待办呼出热键 (Todo)
+                                                </label>
+                                                <p className="text-[10px] text-slate-400 mt-1">当前: {todoHotkey}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setRecordingTarget('todo')}
+                                                    className={`px-4 py-2 rounded-xl font-bold text-[10px] transition-all flex items-center gap-1.5 ${recordingTarget === 'todo' ? 'bg-success text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                                                >
+                                                    <span className="material-icons text-sm">{recordingTarget === 'todo' ? 'stop_circle' : 'fiber_manual_record'}</span>
+                                                    {recordingTarget === 'todo' ? '正在录制...' : '录制新热键'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="px-4 relative group">
+                                            <div className={`w-full bg-slate-950/60 border-2 rounded-2xl py-6 flex items-center justify-center transition-all ${recordingTarget === 'todo' ? 'border-success ring-4 ring-success/20 shadow-2xl' : 'border-slate-800 hover:border-slate-700'}`}>
+                                                <span className="text-3xl font-black text-white tracking-widest font-mono uppercase">
+                                                    {todoHotkey}
+                                                </span>
+                                                {recordingTarget === 'todo' && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 rounded-2xl z-10">
+                                                        <div className="text-center">
+                                                            <p className="text-success font-black text-sm mb-2 animate-bounce">请按下组合键</p>
+                                                            <p className="text-slate-500 text-[10px]">支持 Cmd/Alt/Shift/Control + 按键</p>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setRecordingTarget(null); }}
+                                                                className="mt-4 text-[10px] text-slate-600 underline"
+                                                            >
+                                                                取消录制
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            autoFocus
+                                                            className="absolute inset-0 opacity-0 cursor-default"
+                                                            onKeyDown={(e) => {
+                                                                e.preventDefault();
+                                                                const keys = [];
+                                                                if (e.metaKey) keys.push('Cmd');
+                                                                if (e.ctrlKey) keys.push('Control');
+                                                                if (e.altKey) keys.push('Alt');
+                                                                if (e.shiftKey) keys.push('Shift');
+                                                                const key = e.key === ' ' ? 'Space' : e.key;
+                                                                if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+                                                                    const newHotkey = [...keys, key.charAt(0).toUpperCase() + key.slice(1)].join('+');
+                                                                    setTodoHotkey(newHotkey);
+                                                                    setRecordingTarget(null);
+                                                                    (window as any).ipcRenderer.send('set-todo-hotkey', newHotkey);
+                                                                    (window as any).ipcRenderer.once('set-todo-hotkey-result', (_: any, res: { success: boolean, hotkey: string }) => {
+                                                                        if (res.success) {
+                                                                            setMessage({ type: 'success', text: `待办热键已激活: ${res.hotkey}` });
+                                                                        } else {
+                                                                            setMessage({ type: 'error', text: `注册失败，可能是系统冲突` });
+                                                                        }
+                                                                    });
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-[9px] text-slate-600 ml-4 italic">* 建议使用组合键（如 Ctrl+M / Ctrl+J）避免按键冲突。</p>
                                 </div>
                             )}
 
@@ -392,9 +444,10 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                     onClick={async () => {
                                         setIsUpdating(true);
                                         try {
-                                            const newConfig = { ...config, archiveRetentionDays: retentionDays, globalHotkey: hotkey };
+                                            const newConfig = { ...config, archiveRetentionDays: retentionDays, globalHotkey: hotkey, todoHotkey: todoHotkey };
                                             // Handle persistence for hotkey separately in localStorage for now
                                             localStorage.setItem('globalHotkey', hotkey);
+                                            localStorage.setItem('todoHotkey', todoHotkey);
 
                                             const response = await fetch(`${API_BASE_URL}/user/config?user_id=${user.id}`, {
                                                 method: 'PUT',
@@ -404,7 +457,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                                     model_name: newConfig.modelName,
                                                     api_key: newConfig.apiKey,
                                                     archive_retention_days: retentionDays,
-                                                    global_hotkey: hotkey
+                                                    global_hotkey: hotkey,
+                                                    todo_hotkey: todoHotkey
                                                 }),
                                             });
                                             if (response.ok) {

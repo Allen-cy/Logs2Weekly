@@ -98,4 +98,5 @@ export interface AppConfig {
   inboxRetentionDays?: number;
   archiveRetentionDays?: number;
   globalHotkey?: string;
+  todoHotkey?: string;
 }

@@ -324,6 +324,9 @@ const App: React.FC = () => {
         const response = await fetch(`${API_BASE_URL}/user/config?user_id=${user.id}`);
         const data = await response.json();
         if (data.success && data.config) {
+          const globalHotkey = data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+M';
+          const todoHotkey = data.config.todo_hotkey || localStorage.getItem('todoHotkey') || 'Alt+J';
+          
           setConfig({
             provider: data.config.provider,
             modelName: data.config.model_name,
@@ -331,11 +334,13 @@ const App: React.FC = () => {
             apiKeyTested: !!data.config.api_key_encrypted,
             inboxRetentionDays: data.config.inbox_retention_days || 15,
             archiveRetentionDays: data.config.archive_retention_days || 15,
-            globalHotkey: data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+M'
+            globalHotkey: globalHotkey,
+            todoHotkey: todoHotkey
           });
           // Sync to main process
           if ((window as any).ipcRenderer) {
-            (window as any).ipcRenderer.send('set-hotkey', data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+M');
+            (window as any).ipcRenderer.send('set-hotkey', globalHotkey);
+            (window as any).ipcRenderer.send('set-todo-hotkey', todoHotkey);
           }
         }
       } catch (err) {
@@ -359,7 +364,8 @@ const App: React.FC = () => {
             api_key: config.apiKey,
             inbox_retention_days: config.inboxRetentionDays || 15,
             archive_retention_days: config.archiveRetentionDays || 15,
-            global_hotkey: config.globalHotkey || 'Alt+M'
+            global_hotkey: config.globalHotkey || 'Alt+M',
+            todo_hotkey: config.todoHotkey || 'Alt+J'
           }),
         });
       } catch (err) {
