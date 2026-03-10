@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.2.2';
+export const APP_VERSION = '3.3.0';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.3.0',
+        date: '2026-03-10',
+        features: [
+            { icon: 'speed', title: '极速记录双模式', desc: '新增独立的无干扰沉浸式透明小窗，直接呼出即可输入，不渲染整个主页面，轻量流畅。' },
+            { icon: 'keyboard', title: '独立快捷键分流', desc: '支持 Control/Command+M 呼出日志输入框，Control/Command+J 呼出待办输入框，两组快捷键互不干扰。' },
+            { icon: 'hub', title: '主界面状态解耦', desc: '极速输入窗口提交内容后，将利用跨进程 IPC 在后台自动添加数据到主窗口并处理存储请求。' }
+        ]
+    },
     {
         version: '3.2.2',
         date: '2026-03-09',
