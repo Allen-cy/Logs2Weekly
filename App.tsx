@@ -398,7 +398,26 @@ const App: React.FC = () => {
             const reports = await reportResp.json();
             if (reports && reports.length > 0) {
               // reports[0] 是按时间倒序最新的记录
-              setSummary(reports[0].content);
+              let rawContent = reports[0].content;
+              if (typeof rawContent === 'string') {
+                try {
+                  rawContent = JSON.parse(rawContent);
+                } catch (e) {
+                  console.warn("Failed to parse report content string", e);
+                }
+              }
+              // 结构检查防崩溃
+              if (rawContent !== null && typeof rawContent === 'object' && rawContent.executiveSummary) {
+                // 确保基础的子属性存在，如果缺失就提供保底以免组件中通过 . 操作符导致崩溃白屏
+                const safeSummary = {
+                  executiveSummary: rawContent.executiveSummary || '暂无内容',
+                  pulseStats: rawContent.pulseStats || { completed: 0, completedChange: 0, deepWorkHours: 0, deepWorkAvg: 0 },
+                  focusAreas: rawContent.focusAreas || [],
+                  highlights: rawContent.highlights || [],
+                  nextWeekSuggestions: rawContent.nextWeekSuggestions || []
+                };
+                setSummary(safeSummary);
+              }
             }
           }
         } catch (repErr) {
