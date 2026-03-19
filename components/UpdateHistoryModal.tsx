@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.3.0';
+export const APP_VERSION = '3.4.0';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.4.0',
+        date: '2026-03-19',
+        features: [
+            { icon: 'auto_awesome', title: '智能后台周报归档', desc: '新增全自动周报引擎。每逢周五下午及周末，应用将在后台无感生成周报并云端存档，彻底解决只在本地且忘记存的历史痛点。' },
+            { icon: 'sync', title: '多端全域同步', desc: '当任意端触发周报生成后，其他所有设备（Web/App/桌面）将直接在历史记录中获得更新，无需再手动操作保存。' },
+            { icon: 'content_paste_go', title: '细节交互优化', desc: '在周报执行摘要下增加全新 Markdown 专属渲染代码区，并提供快捷按钮，实现一键完美拷贝汇报至第三方平台。' },
+            { icon: 'bug_report', title: '顽固缺陷抹杀', desc: '彻底修复待办列表重载时异常堆叠出现重复项，以及打钩标记完成时偶现的界面卡死不响应问题，重获极致丝滑流畅。' }
+        ]
+    },
     {
         version: '3.3.0',
         date: '2026-03-10',
