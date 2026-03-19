@@ -390,6 +390,21 @@ const App: React.FC = () => {
         if (data) {
           setLogs(data);
         }
+        
+        // 获取并加载云端最新周报（实现三端初始化即同步展示）
+        try {
+          const reportResp = await fetch(`${API_BASE_URL}/reports?user_id=${user.id}`);
+          if (reportResp.ok) {
+            const reports = await reportResp.json();
+            if (reports && reports.length > 0) {
+              // reports[0] 是按时间倒序最新的记录
+              setSummary(reports[0].content);
+            }
+          }
+        } catch (repErr) {
+          console.error("Failed to fetch latest report", repErr);
+        }
+        
       } catch (err) {
         console.error("Failed to fetch logs", err);
         setLogs([]);

@@ -107,10 +107,14 @@ async def test_glm_connection(api_key: str, model_name: str = "glm-4") -> Dict[s
     return await get_provider("glm").test_connection(api_key, model_name)
 
 async def generate_summary(api_key: str, model_type: str, model_name: str, log_content: str) -> Optional[str]:
-    prompt = f"""你是一位专业的高级生产力顾问。请根据以下日志记录生成本周周报总结。
-要求：1. 必须使用中文。 2. 严格 JSON 输出。 3. 摘要需包含对成就的认可。 4. 请根据日志内容，智能分析并预测下周的工作建议 (nextWeekSuggestions)。
+    prompt = f"""你现在是一位专业的职场高管助理。请根据以下我记录的日志和待办事项，帮我生成一份**向上级汇报**的周报。
+要求如下：
+1. **必须使用中文**，并严格以 **JSON 格式** 输出。
+2. **措辞优化与价值包装**：绝不能是简单的流水账罗列，也不要刻板生硬。请充分利用你的总结和润色能力，提取各项任务的核心价值、产出与团队贡献，用专业、干练且带有成就感的语言进行包装。
+3. **结构**：在执行摘要中肯定成果，并自然过渡到各项核心数据。
+4. **前瞻性展望**：请基于本周表现，智能推导出建设性的下周规划和工作建议 (nextWeekSuggestions)。
 
-日志内容：
+我的本周原始日志和待办内容：
 {log_content}
 
 输出 JSON 格式参考：
