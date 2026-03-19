@@ -193,7 +193,12 @@ const App: React.FC = () => {
               localStored = JSON.stringify(merged);
             }
           }
-        } catch (e) { }
+          // 彻底迁移并备份，防止后续不断加载这些旧带时间戳 id 的项目导致无限复制
+          localStorage.removeItem('todos');
+          localStorage.setItem('todos_migrated_backup', legacy);
+        } catch (e) { 
+          localStorage.removeItem('todos');
+        }
       }
 
       let masterTodos: Todo[] = [];
@@ -495,10 +500,19 @@ const App: React.FC = () => {
     const now = new Date().toISOString();
     let newRelatedLogId = todo.relatedLogId;
 
+    // 乐观更新 UI：先更新 todo 本身的完成状态，防止因为后面等待 API 卡住从而触发动画闪回或“没反应”
+    setTodos(prev => prev.map(t => t.id === id ? {
+      ...t,
+      completed: newCompleted,
+      completedAt: newCompleted ? now : undefined,
+    } : t));
+
     if (newCompleted && user) {
-      const logContent = `[待办完成] ${todo.content} (${todo.listName})`;
-      const saved = await handleAddLog(`- [x] ${logContent}`);
-      if (saved) newRelatedLogId = saved.id;
+      try {
+        const logContent = `[待办完成] ${todo.content} (${todo.listName})`;
+        const saved = await handleAddLog(`- [x] ${logContent}`);
+        if (saved) newRelatedLogId = saved.id;
+      } catch (err) { }
     } else if (!newCompleted && user && todo.relatedLogId) {
       try {
         await deleteLog(todo.relatedLogId, user.id);
@@ -509,12 +523,12 @@ const App: React.FC = () => {
       }
     }
 
-    setTodos(prev => prev.map(t => t.id === id ? {
-      ...t,
-      completed: newCompleted,
-      completedAt: newCompleted ? now : undefined,
-      relatedLogId: newRelatedLogId
-    } : t));
+    if (newRelatedLogId !== todo.relatedLogId) {
+      setTodos(prev => prev.map(t => t.id === id ? {
+        ...t,
+        relatedLogId: newRelatedLogId
+      } : t));
+    }
 
     if (user) {
       try {

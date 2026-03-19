@@ -75,3 +75,6 @@
 - [x] 技术路线图 (Roadmap)
 - [x] 项目总结报告 (Phase Summary)
 - [x] **全景交互历史记录 (Interaction History)**
+
+
+- [x] [2026-03-19 19:35:06] 修复待办列表的重复合并与状态响应延迟 Bug
