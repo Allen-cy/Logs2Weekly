@@ -45,28 +45,9 @@ const ReviewView: React.FC<ReviewViewProps> = ({ summary, user, isReadOnly = fal
     }
   };
 
-  const handleCopyMarkdown = () => {
-    const md = `
-# AI 执行摘要
-${summary.executiveSummary}
-
-## 核心指标
-- 已完成任务: ${summary.pulseStats.completed}
-- 深度工作时间: ${summary.pulseStats.deepWorkHours}h
-
-## 本周重点
-${summary.highlights.map(h => `### ${h.title} (${h.category})\n- **时间**: ${h.timestamp}\n- **分类**: ${h.category}\n\n${h.description}`).join('\n\n')}
-
-## 下周建议
-${summary.nextWeekSuggestions?.map(s => `- ${s}`).join('\n')}
-    `.trim();
-
-    navigator.clipboard.writeText(md);
-    alert("Markdown 已复制到剪贴板，可直接粘贴至 Obsidian/Notion");
-  };
-
-  const handleDownloadMarkdown = () => {
-    const md = `---
+  const markdownContent = useMemo(() => {
+    if (!summary) return "";
+    return `---
 title: ${new Date().toLocaleDateString('zh-CN')} 周总结报告
 author: ${user?.username || 'User'}
 date: ${new Date().toISOString()}
@@ -86,8 +67,15 @@ ${summary.highlights.map(h => `### ${h.title} (${h.category})\n- **时间**: ${h
 ## 下周建议
 ${summary.nextWeekSuggestions?.map(s => `- ${s}`).join('\n')}
     `.trim();
+  }, [summary, user]);
 
-    const blob = new Blob([md], { type: 'text/markdown' });
+  const handleCopyMarkdown = () => {
+    navigator.clipboard.writeText(markdownContent);
+    alert("Markdown 已复制到剪贴板，可直接粘贴至 Obsidian/Notion");
+  };
+
+  const handleDownloadMarkdown = () => {
+    const blob = new Blob([markdownContent], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -158,6 +146,28 @@ ${summary.nextWeekSuggestions?.map(s => `- ${s}`).join('\n')}
           </div>
         </div>
       </section>
+
+      {/* 新增：周报详情 Markdown 直出区块，便于复制 */}
+      {!summary.executiveSummary.includes("暂无周报") && (
+        <section className="bg-surface-dark rounded-2xl border border-slate-800 p-6 shadow-xl leading-relaxed">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="material-icons text-primary">description</span> 周报详情 (Markdown)
+            </h3>
+            <button
+              onClick={handleCopyMarkdown}
+              className="px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary text-xs font-bold uppercase rounded-lg transition-all flex items-center gap-1"
+            >
+              <span className="material-icons text-[14px]">content_copy</span> 便捷复制
+            </button>
+          </div>
+          <div className="bg-[#0d1117] rounded-xl p-4 overflow-x-auto border border-white/5 custom-scrollbar">
+            <pre className="text-xs text-slate-400 font-mono whitespace-pre-wrap select-all">
+              {markdownContent}
+            </pre>
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface-dark p-6 rounded-2xl border border-slate-800">

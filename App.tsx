@@ -570,25 +570,77 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRegenerate = async () => {
+  const handleRegenerate = async (isAuto = false) => {
     if (!config.apiKeyTested) {
-      setViewMode('setup');
+      if (!isAuto) setViewMode('setup');
       return;
     }
+    if (isGenerating && isAuto) return; // Prevent concurrent auto runs
+
     setIsGenerating(true);
     try {
       const newSummary = await generateWeeklyReport(logs, config);
       if (newSummary) {
         setSummary(newSummary);
-        setViewMode('review');
+        if (!isAuto) setViewMode('review');
+        
+        // 自动保存到后端，确保多端立即可见，解决不同步问题
+        if (user) {
+          try {
+            await fetch(`${API_BASE_URL}/reports`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: user.id,
+                title: `${new Date().toLocaleDateString('zh-CN')} ${isAuto ? '自动' : ''}总结周报`,
+                content: newSummary,
+                start_date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+                end_date: new Date().toISOString().split('T')[0]
+              })
+            });
+          } catch (e) {
+            console.error("Auto sync report error", e);
+          }
+        }
       }
     } catch (e) {
       console.error(e);
-      alert("生成失败，请检查配置或 API 配额。");
+      if (!isAuto) alert("生成失败，请检查配置或 API 配额。");
     } finally {
       setIsGenerating(false);
     }
   };
+
+  // 自动监测每周五 18:00 生成周报
+  useEffect(() => {
+    if (!user || !config.apiKeyTested || logs.length === 0) return;
+
+    const checkAutoReport = () => {
+      const now = new Date();
+      // 检查：只针对每周五 (getDay() === 5) 且 >= 18 点，或者周末补偿生成
+      const isWeekendOrFridayEve = (now.getDay() === 5 && now.getHours() >= 18) || now.getDay() === 6 || now.getDay() === 0;
+
+      if (isWeekendOrFridayEve) {
+        // 利用本周某个固定标识，例如今天是周五的日期字符串
+        // 不只是单天判定，而是记录最近一次生成的"周数"
+        const currentYearWeek = `${now.getFullYear()}-W${Math.ceil((now.getDate() - now.getDay() + 10) / 7)}`;
+        const lastStr = localStorage.getItem(`last_auto_report_week_${user.id}`);
+        
+        if (lastStr !== currentYearWeek) {
+          console.log("Triggering Auto Generate Report for this weekend!");
+          localStorage.setItem(`last_auto_report_week_${user.id}`, currentYearWeek);
+          // 在后台静默生成并同步
+          handleRegenerate(true);
+        }
+      }
+    };
+
+    // 初始化时检测一次
+    checkAutoReport();
+    // 后台长轮询：每小时检测一次防漏
+    const timer = setInterval(checkAutoReport, 60 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [user, config.apiKeyTested, logs]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');

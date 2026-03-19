@@ -1,7 +1,7 @@
 {
   "name": "ai-productivity-hub",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.4.0",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
