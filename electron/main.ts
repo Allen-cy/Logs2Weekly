@@ -100,15 +100,16 @@ function createQuickWindow() {
     if (quickWin) return;
     
     quickWin = new BrowserWindow({
-        width: 600,
-        height: 120,
+        width: 720,
+        height: 188,
         frame: false,
         transparent: true,
         show: false,
-        hasShadow: false,
+        hasShadow: true,
         alwaysOnTop: true,
         resizable: false,
         skipTaskbar: true,
+        backgroundColor: '#00000000',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,

@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.5.0';
+export const APP_VERSION = '3.5.1';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.5.1',
+        date: '2026-06-17',
+        features: [
+            { icon: 'water_drop', title: '液态玻璃极速弹窗', desc: '重构 Control+M 与 Control+K 呼出的快速记录窗口，加入液态玻璃、水滴高光边框与更清晰的输入层次。' },
+            { icon: 'open_in_full', title: '弹窗显示完整修复', desc: '扩大桌面端快捷窗口尺寸并优化内部布局，避免快速日志和快速待办输入框被裁切。' }
+        ]
+    },
     {
         version: '3.5.0',
         date: '2026-06-17',
