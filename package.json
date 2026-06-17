@@ -1,7 +1,7 @@
 {
   "name": "ai-productivity-hub",
   "private": true,
-  "version": "3.4.1",
+  "version": "3.5.0",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -44,7 +44,7 @@
           ]
         }
       ],
-      "artifactName": "${productName}_v${version}_Build20260319_${arch}.${ext}"
+      "artifactName": "${productName}_v${version}_Build20260617_${arch}.${ext}"
     }
   },
   "dependencies": {

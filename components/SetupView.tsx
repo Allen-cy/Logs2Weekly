@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { AppConfig, ModelProvider } from '../types';
 import { testConnection } from '../aiService';
+import { DEFAULT_AI_CONFIG } from '../constants';
 
 interface SetupViewProps {
   config: AppConfig;
@@ -16,11 +17,19 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
 
   const handleSelectProvider = (provider: ModelProvider) => {
     let defaultModel = 'gemini-2.5-flash';
+    let defaultApiKey = '';
+    let apiKeyTested = false;
+    if (provider === 'deepseek') {
+      defaultModel = DEFAULT_AI_CONFIG.modelName;
+      defaultApiKey = DEFAULT_AI_CONFIG.apiKey;
+      apiKeyTested = true;
+    }
+    else if (provider === 'openrouter') defaultModel = '~openai/gpt-latest';
     if (provider === 'kimi') defaultModel = 'kimi-k2.5';
     else if (provider === 'glm') defaultModel = 'glm-4';
     else if (provider === 'qwen') defaultModel = 'qwen-turbo';
 
-    setConfig(prev => ({ ...prev, provider, modelName: defaultModel, apiKeyTested: false }));
+    setConfig(prev => ({ ...prev, provider, modelName: defaultModel, apiKey: defaultApiKey, apiKeyTested }));
     setTestResult({});
     setStep(2);
   };
@@ -45,6 +54,8 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
   const getDocUrl = (provider: ModelProvider) => {
     switch (provider) {
       case 'gemini': return "https://aistudio.google.com/app/apikey";
+      case 'deepseek': return "https://platform.deepseek.com/api_keys";
+      case 'openrouter': return "https://openrouter.ai/settings/keys";
       case 'kimi': return "https://platform.moonshot.cn/console/api-keys";
       case 'glm': return "https://open.bigmodel.cn/usercenter/apikeys";
       case 'qwen': return "https://dashscope.console.aliyun.com/apiKey";
@@ -97,6 +108,32 @@ const SetupView: React.FC<SetupViewProps> = ({ config, setConfig, onFinish }) =>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleSelectProvider('deepseek')}
+                  className="group relative p-6 rounded-3xl border-2 border-slate-800 bg-slate-900/40 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-95"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-5 group-hover:scale-110 transition-transform">
+                    <span className="material-icons text-2xl">rocket_launch</span>
+                  </div>
+                  <h4 className="font-bold text-lg text-white mb-2">DeepSeek V4</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    默认启用 V4 Pro，兼顾长上下文、推理和中文总结质量。
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => handleSelectProvider('openrouter')}
+                  className="group relative p-6 rounded-3xl border-2 border-slate-800 bg-slate-900/40 text-left transition-all hover:border-cyan-400 hover:bg-cyan-400/5 active:scale-95"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-400/10 flex items-center justify-center text-cyan-400 mb-5 group-hover:scale-110 transition-transform">
+                    <span className="material-icons text-2xl">route</span>
+                  </div>
+                  <h4 className="font-bold text-lg text-white mb-2">OpenRouter</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    统一接入多家模型，适合按成本、速度或能力灵活切换。
+                  </p>
+                </button>
+
                 <button
                   onClick={() => handleSelectProvider('gemini')}
                   className="group relative p-6 rounded-3xl border-2 border-slate-800 bg-slate-900/40 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-95"

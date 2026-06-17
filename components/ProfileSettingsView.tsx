@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../aiService';
 import UpdateHistoryModal, { APP_VERSION } from './UpdateHistoryModal';
 import FeedbackModal from './FeedbackModal';
 import AdminFeedbackPanel from './AdminFeedbackPanel';
+import { DEFAULT_LOG_HOTKEY, DEFAULT_TODO_HOTKEY } from '../constants';
 
 interface ProfileSettingsViewProps {
     user: User;
@@ -29,8 +30,8 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [retentionDays, setRetentionDays] = useState(config.archiveRetentionDays || 15);
-    const [hotkey, setHotkey] = useState(config.globalHotkey || 'Alt+M');
-    const [todoHotkey, setTodoHotkey] = useState(config.todoHotkey || 'Alt+J');
+    const [hotkey, setHotkey] = useState(config.globalHotkey || DEFAULT_LOG_HOTKEY);
+    const [todoHotkey, setTodoHotkey] = useState(config.todoHotkey || DEFAULT_TODO_HOTKEY);
     const [recordingTarget, setRecordingTarget] = useState<'log' | 'todo' | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -435,7 +436,7 @@ const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="text-[9px] text-slate-600 ml-4 italic">* 建议使用组合键（如 Ctrl+M / Ctrl+J）避免按键冲突。</p>
+                                    <p className="text-[9px] text-slate-600 ml-4 italic">* 默认使用 Control+M 记录日志，Control+K 创建待办；也可自定义为其他组合键。</p>
                                 </div>
                             )}
 

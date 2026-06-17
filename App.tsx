@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ViewMode, LogEntry, WeeklySummary, LogType, LogStatus, AppConfig, User, Report } from './types';
-import { INITIAL_LOGS, INITIAL_SUMMARY } from './constants';
+import { DEFAULT_AI_CONFIG, DEFAULT_LOG_HOTKEY, DEFAULT_TODO_HOTKEY, INITIAL_LOGS, INITIAL_SUMMARY } from './constants';
 import DashboardView from './components/DashboardView';
 import ReviewView from './components/ReviewView';
 import Header from './components/Header';
@@ -42,15 +42,7 @@ const App: React.FC = () => {
   const [summary, setSummary] = useState<WeeklySummary>(INITIAL_SUMMARY);
   const [isGenerating, setIsGenerating] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [config, setConfig] = useState<AppConfig>({
-    provider: 'gemini',
-    modelName: 'gemini-1.5-flash',
-    apiKey: '',
-    apiKeyTested: false,
-    inboxRetentionDays: 15,
-    archiveRetentionDays: 15,
-    globalHotkey: 'Alt+M'
-  });
+  const [config, setConfig] = useState<AppConfig>(() => ({ ...DEFAULT_AI_CONFIG }));
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [showUpdateHistory, setShowUpdateHistory] = useState(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -65,7 +57,7 @@ const App: React.FC = () => {
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
 
   // 自动更新状态
-  const [updateStatus, setUpdateStatus] = useState<'idle' | 'available' | 'downloading' | 'downloaded'>('idle');
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'available' | 'downloading' | 'downloaded' | 'error'>('idle');
   const [updateProgress, setUpdateProgress] = useState({ percent: 0, transferred: 0, total: 0 });
   const [updateInfo, setUpdateInfo] = useState({ version: '', releaseNotes: '' });
 
@@ -107,11 +99,16 @@ const App: React.FC = () => {
       const cleanupDownloaded = (window as any).ipcRenderer.on('update-downloaded', () => {
         setUpdateStatus('downloaded');
       });
+      const cleanupError = (window as any).ipcRenderer.on('update-error', (info: any) => {
+        setUpdateInfo({ version: '', releaseNotes: info?.message || '更新检查失败，请稍后重试' });
+        setUpdateStatus('error');
+      });
 
       return () => {
         if (typeof cleanupAvailable === 'function') cleanupAvailable();
         if (typeof cleanupProgress === 'function') cleanupProgress();
         if (typeof cleanupDownloaded === 'function') cleanupDownloaded();
+        if (typeof cleanupError === 'function') cleanupError();
       };
     }
   }, []);
@@ -327,8 +324,8 @@ const App: React.FC = () => {
         const response = await fetch(`${API_BASE_URL}/user/config?user_id=${user.id}`);
         const data = await response.json();
         if (data.success && data.config) {
-          const globalHotkey = data.config.global_hotkey || localStorage.getItem('globalHotkey') || 'Alt+M';
-          const todoHotkey = data.config.todo_hotkey || localStorage.getItem('todoHotkey') || 'Alt+J';
+          const globalHotkey = data.config.global_hotkey || localStorage.getItem('globalHotkey') || DEFAULT_LOG_HOTKEY;
+          const todoHotkey = data.config.todo_hotkey || localStorage.getItem('todoHotkey') || DEFAULT_TODO_HOTKEY;
           
           setConfig({
             provider: data.config.provider,
@@ -367,8 +364,8 @@ const App: React.FC = () => {
             api_key: config.apiKey,
             inbox_retention_days: config.inboxRetentionDays || 15,
             archive_retention_days: config.archiveRetentionDays || 15,
-            global_hotkey: config.globalHotkey || 'Alt+M',
-            todo_hotkey: config.todoHotkey || 'Alt+J'
+            global_hotkey: config.globalHotkey || DEFAULT_LOG_HOTKEY,
+            todo_hotkey: config.todoHotkey || DEFAULT_TODO_HOTKEY
           }),
         });
       } catch (err) {
@@ -680,12 +677,7 @@ const App: React.FC = () => {
     setUser(null);
     setLogs([]);
     setSummary(INITIAL_SUMMARY);
-    setConfig({
-      provider: 'gemini',
-      modelName: 'gemini-1.5-flash',
-      apiKey: '',
-      apiKeyTested: false,
-    });
+    setConfig({ ...DEFAULT_AI_CONFIG });
     setViewMode('login');
   };
 
@@ -792,20 +784,20 @@ const App: React.FC = () => {
       {updateStatus !== 'idle' && (
         <div className="fixed top-4 right-4 sm:top-24 sm:right-8 z-[200] w-[320px] bg-slate-900/95 backdrop-blur-xl border border-primary/50 shadow-2xl shadow-primary/20 rounded-2xl p-5 animate-in slide-in-from-right-8 fade-in duration-500">
           <div className="flex items-start gap-4">
-            <div className={`p-2 rounded-xl flex-shrink-0 ${updateStatus === 'downloaded' ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}`}>
-              <span className="material-icons">{updateStatus === 'downloaded' ? 'system_update' : 'cloud_download'}</span>
+            <div className={`p-2 rounded-xl flex-shrink-0 ${updateStatus === 'downloaded' ? 'bg-success/20 text-success' : updateStatus === 'error' ? 'bg-danger/20 text-danger' : 'bg-primary/20 text-primary'}`}>
+              <span className="material-icons">{updateStatus === 'downloaded' ? 'system_update' : updateStatus === 'error' ? 'error' : 'cloud_download'}</span>
             </div>
             <div className="flex-1">
               <h4 className="text-white font-bold text-sm mb-1">
-                {updateStatus === 'available' ? '发现新版本' : updateStatus === 'downloading' ? '正在下载更新' : '更新已准备就绪'}
+                {updateStatus === 'available' ? '发现新版本' : updateStatus === 'downloading' ? '正在下载更新' : updateStatus === 'downloaded' ? '更新已准备就绪' : '更新检查失败'}
               </h4>
               <p className="text-slate-400 text-xs mb-3">
-                {updateStatus === 'available' ? `版本 ${updateInfo.version} 已发布` : updateStatus === 'downloading' ? '下载完成后将提示您重启安装' : '一键重启完成版本升级'}
+                {updateStatus === 'available' ? `版本 ${updateInfo.version} 已发布` : updateStatus === 'downloading' ? '下载完成后将提示您重启安装' : updateStatus === 'downloaded' ? '一键重启完成版本升级' : updateInfo.releaseNotes}
               </p>
 
               {updateStatus === 'available' && (
                 <div className="flex gap-2">
-                  <button onClick={() => { setUpdateStatus('idle'); (window as any).ipcRenderer?.send('download-update'); }} className="flex-1 py-1.5 bg-primary hover:brightness-110 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-primary/20">
+                  <button onClick={() => { setUpdateStatus('downloading'); (window as any).ipcRenderer?.send('download-update'); }} className="flex-1 py-1.5 bg-primary hover:brightness-110 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-primary/20">
                     立即更新
                   </button>
                   <button onClick={() => setUpdateStatus('idle')} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
@@ -824,6 +816,17 @@ const App: React.FC = () => {
                 <div className="flex gap-2">
                   <button onClick={() => (window as any).ipcRenderer?.send('install-update')} className="flex-1 py-1.5 bg-success hover:brightness-110 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-success/20">
                     立即重启安装
+                  </button>
+                  <button onClick={() => setUpdateStatus('idle')} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
+                    稍后
+                  </button>
+                </div>
+              )}
+
+              {updateStatus === 'error' && (
+                <div className="flex gap-2">
+                  <button onClick={() => { setUpdateStatus('idle'); (window as any).ipcRenderer?.send('check-for-updates'); }} className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
+                    重试
                   </button>
                   <button onClick={() => setUpdateStatus('idle')} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
                     稍后

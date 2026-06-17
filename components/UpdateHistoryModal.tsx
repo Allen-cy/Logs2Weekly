@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.4.1';
+export const APP_VERSION = '3.5.0';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.5.0',
+        date: '2026-06-17',
+        features: [
+            { icon: 'rocket_launch', title: 'DeepSeek V4 默认引擎', desc: '新增 DeepSeek 与 OpenRouter 服务商，并将默认模型切换为 DeepSeek V4 Pro，开箱即可进行中文日志整理与周报生成。' },
+            { icon: 'keyboard_command_key', title: '极速快捷键定稿', desc: '极速记录默认使用 Control+M，极速待办默认使用 Control+K，并优化热键注册失败时的反馈。' },
+            { icon: 'system_update_alt', title: '桌面自动更新增强', desc: '客户端会在启动、窗口显示和后台定时主动检查新版本，发现更新后提醒用户下载并重启安装。' }
+        ]
+    },
     {
         version: '3.4.1',
         date: '2026-03-19',
@@ -18,7 +27,7 @@ export const UPDATE_HISTORY = [
         date: '2026-03-10',
         features: [
             { icon: 'speed', title: '极速记录双模式', desc: '新增独立的无干扰沉浸式透明小窗，直接呼出即可输入，不渲染整个主页面，轻量流畅。' },
-            { icon: 'keyboard', title: '独立快捷键分流', desc: '支持 Control/Command+M 呼出日志输入框，Control/Command+J 呼出待办输入框，两组快捷键互不干扰。' },
+            { icon: 'keyboard', title: '独立快捷键分流', desc: '支持 Control/Command+M 呼出日志输入框，Control/Command+K 呼出待办输入框，两组快捷键互不干扰。' },
             { icon: 'hub', title: '主界面状态解耦', desc: '极速输入窗口提交内容后，将利用跨进程 IPC 在后台自动添加数据到主窗口并处理存储请求。' }
         ]
     },

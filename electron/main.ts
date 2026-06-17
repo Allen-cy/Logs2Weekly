@@ -91,9 +91,10 @@ function createWindow() {
     })
 }
 
-let currentHotkey = 'CommandOrControl+M'
-let currentTodoHotkey = 'CommandOrControl+J'
+let currentHotkey = 'Control+M'
+let currentTodoHotkey = 'Control+K'
 let quickWin: BrowserWindow | null = null
+let updateCheckTimer: NodeJS.Timeout | null = null
 
 function createQuickWindow() {
     if (quickWin) return;
@@ -127,7 +128,7 @@ function createQuickWindow() {
     })
 }
 
-function registerGlobalShortcuts(logHotkey: string = 'CommandOrControl+M', todoHotkey: string = 'CommandOrControl+J') {
+function registerGlobalShortcuts(logHotkey: string = 'Control+M', todoHotkey: string = 'Control+K') {
     try {
         globalShortcut.unregisterAll()
         
@@ -143,7 +144,7 @@ function registerGlobalShortcuts(logHotkey: string = 'CommandOrControl+M', todoH
         currentHotkey = targetLog;
         currentTodoHotkey = targetTodo;
 
-        globalShortcut.register(targetLog, () => {
+        const logRegistered = globalShortcut.register(targetLog, () => {
             if (!quickWin) {
                 createQuickWindow();
                 quickWin?.once('ready-to-show', () => {
@@ -162,7 +163,7 @@ function registerGlobalShortcuts(logHotkey: string = 'CommandOrControl+M', todoH
             }
         })
 
-        globalShortcut.register(targetTodo, () => {
+        const todoRegistered = globalShortcut.register(targetTodo, () => {
             if (!quickWin) {
                 createQuickWindow();
                 quickWin?.once('ready-to-show', () => {
@@ -183,8 +184,8 @@ function registerGlobalShortcuts(logHotkey: string = 'CommandOrControl+M', todoH
 
         currentHotkey = targetLog;
         currentTodoHotkey = targetTodo;
-        console.log(`Shortcuts registered: Log=${targetLog}, Todo=${targetTodo}`);
-        return true;
+        console.log(`Shortcuts registered: Log=${targetLog} (${logRegistered}), Todo=${targetTodo} (${todoRegistered})`);
+        return logRegistered && todoRegistered;
     } catch (e) {
         console.error('Error registering shortcuts', e)
         return false
@@ -266,6 +267,10 @@ app.whenReady().then(() => {
 })
 
 app.on('will-quit', () => {
+    if (updateCheckTimer) {
+        clearInterval(updateCheckTimer)
+        updateCheckTimer = null
+    }
     globalShortcut.unregisterAll()
 })
 
@@ -308,14 +313,26 @@ function setupAutoUpdater() {
     // 更新错误
     autoUpdater.on('error', (err) => {
         console.error('Auto-updater error:', err)
+        win?.webContents.send('update-error', {
+            message: err?.message || '更新检查失败'
+        })
     })
 
-    // 启动后延迟 5 秒静默检查
-    setTimeout(() => {
+    const checkForUpdates = (reason: string) => {
+        if (VITE_DEV_SERVER_URL) return
+        console.log(`Checking for updates: ${reason}`)
         autoUpdater.checkForUpdates().catch((err) => {
             console.error('Check for updates failed:', err)
+            win?.webContents.send('update-error', {
+                message: err?.message || '更新检查失败'
+            })
         })
-    }, 5000)
+    }
+
+    // 启动后主动检查，之后定时检查；窗口重新显示时也补一次，确保用户能及时看到更新提醒。
+    setTimeout(() => checkForUpdates('startup'), 5000)
+    updateCheckTimer = setInterval(() => checkForUpdates('interval'), 30 * 60 * 1000)
+    win?.on('show', () => checkForUpdates('window-show'))
 }
 
 // 渲染进程请求手动检查更新

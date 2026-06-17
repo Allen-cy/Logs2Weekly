@@ -1,5 +1,18 @@
 
-import { LogEntry, LogType, LogStatus, WeeklySummary } from './types';
+import { AppConfig, LogEntry, LogType, LogStatus, WeeklySummary } from './types';
+
+export const DEFAULT_LOG_HOTKEY = 'Control+M';
+export const DEFAULT_TODO_HOTKEY = 'Control+K';
+export const DEFAULT_AI_CONFIG: AppConfig = {
+  provider: 'deepseek',
+  modelName: 'deepseek-v4-pro',
+  apiKey: 'sk-bae9527c7c034fc59109c378d7615c06',
+  apiKeyTested: true,
+  inboxRetentionDays: 15,
+  archiveRetentionDays: 15,
+  globalHotkey: DEFAULT_LOG_HOTKEY,
+  todoHotkey: DEFAULT_TODO_HOTKEY,
+};
 
 export const INITIAL_LOGS: LogEntry[] = [
   {

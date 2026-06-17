@@ -42,12 +42,13 @@ class GeminiProvider(ModelProvider):
             return None
 
 class OpenAICompatibleProvider(ModelProvider):
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, default_headers: Optional[Dict[str, str]] = None):
         self.base_url = base_url
+        self.default_headers = default_headers or {}
 
     async def test_connection(self, api_key: str, model_name: str) -> Dict[str, Any]:
         try:
-            client = OpenAI(api_key=api_key.strip(), base_url=self.base_url)
+            client = OpenAI(api_key=api_key.strip(), base_url=self.base_url, default_headers=self.default_headers)
             target_model = MODEL_MAPPING.get(model_name, model_name)
             response = client.chat.completions.create(
                 model=target_model,
@@ -61,7 +62,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
     async def generate_response(self, api_key: str, model_name: str, prompt: str, is_json: bool = False) -> Optional[str]:
         try:
-            client = OpenAI(api_key=api_key.strip(), base_url=self.base_url)
+            client = OpenAI(api_key=api_key.strip(), base_url=self.base_url, default_headers=self.default_headers)
             target_model = MODEL_MAPPING.get(model_name, model_name)
             kwargs = {
                 "model": target_model,
@@ -81,6 +82,14 @@ PROVIDERS = {
     "kimi": OpenAICompatibleProvider("https://api.moonshot.cn/v1"),
     "glm": OpenAICompatibleProvider("https://open.bigmodel.cn/api/paas/v4/"),
     "qwen": OpenAICompatibleProvider("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+    "deepseek": OpenAICompatibleProvider("https://api.deepseek.com"),
+    "openrouter": OpenAICompatibleProvider(
+        "https://openrouter.ai/api/v1",
+        default_headers={
+            "HTTP-Referer": "https://logs2weekly.chunyu2026.dpdns.org",
+            "X-OpenRouter-Title": "Logs2Weekly",
+        },
+    ),
 }
 
 MODEL_MAPPING = {
@@ -92,6 +101,13 @@ MODEL_MAPPING = {
     "moonshot-v1-8k": "moonshot-v1-8k",
     "moonshot-v1-32k": "moonshot-v1-32k",
     "moonshot-v2-128k": "moonshot-v2-128k",
+    # DeepSeek V4
+    "deepseek-v4": "deepseek-v4-pro",
+    "deepseek-v4-pro": "deepseek-v4-pro",
+    "deepseek-v4-flash": "deepseek-v4-flash",
+    # OpenRouter
+    "openrouter-auto": "openrouter/auto",
+    "~openai/gpt-latest": "~openai/gpt-latest",
 }
 
 def get_provider(model_type: str) -> ModelProvider:

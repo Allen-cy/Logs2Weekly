@@ -88,7 +88,7 @@ export interface Todo {
   relatedLogId?: string; // 关联生成的日志 ID
 }
 
-export type ModelProvider = 'gemini' | 'kimi' | 'glm' | 'qwen';
+export type ModelProvider = 'gemini' | 'kimi' | 'glm' | 'qwen' | 'deepseek' | 'openrouter';
 
 export interface AppConfig {
   provider: ModelProvider;

@@ -198,8 +198,8 @@ class UserConfigUpdate(BaseModel):
     api_key: str
     inbox_retention_days: Optional[int] = 15
     archive_retention_days: Optional[int] = 15
-    global_hotkey: Optional[str] = "Alt+Space"
-    todo_hotkey: Optional[str] = "Control+J"
+    global_hotkey: Optional[str] = "Control+M"
+    todo_hotkey: Optional[str] = "Control+K"
 
 class LogEntry(BaseModel):
     content: str
@@ -612,7 +612,7 @@ async def check_connection(req: ConnectionTest):
     try:
         if req.model_type == "gemini":
             result = await test_gemini_connection(req.api_key, req.model_name)
-        elif req.model_type in ["kimi", "glm", "qwen"]:
+        elif req.model_type in ["kimi", "glm", "qwen", "deepseek", "openrouter"]:
             provider = get_provider(req.model_type)
             result = await provider.test_connection(req.api_key, req.model_name)
         else:
