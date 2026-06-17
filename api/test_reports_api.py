@@ -1,10 +1,12 @@
 import asyncio
+import os
 import httpx
-import json
+
+import pytest
 
 BASE_URL = "http://localhost:8000/api"
 
-async def test_reports_api():
+async def run_reports_api_check():
     print("🚀 开始测试周报历史 API (TDD - RED)...")
     
     # 假设用户 ID 为 1
@@ -40,5 +42,11 @@ async def test_reports_api():
         except Exception as e:
             print(f"✅ 符合预期: 保存接口不存在: {e}")
 
+def test_reports_api_integration():
+    if os.getenv("RUN_API_INTEGRATION_TESTS") != "1":
+        pytest.skip("RUN_API_INTEGRATION_TESTS 未开启，跳过本地 API 集成测试")
+
+    asyncio.run(run_reports_api_check())
+
 if __name__ == "__main__":
-    asyncio.run(test_reports_api())
+    asyncio.run(run_reports_api_check())

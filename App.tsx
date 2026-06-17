@@ -23,6 +23,7 @@ import MessagesView from './components/MessagesView';
 import FeedbackModal from './components/FeedbackModal';
 import NotificationToast from './components/NotificationToast';
 import { Todo, TodoPriority } from './types';
+import { normalizeTodoPriority } from './utils/todoPriority';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -219,7 +220,7 @@ const App: React.FC = () => {
               createdAt: t.created_at,
               dueDate: t.due_date,
               listName: t.list_name,
-              priority: (t.priority as TodoPriority) || TodoPriority.P3,
+              priority: normalizeTodoPriority(t.priority),
               notes: t.notes
             }));
 
@@ -237,7 +238,7 @@ const App: React.FC = () => {
                     completed: todo.completed,
                     created_at: todo.createdAt,
                     list_name: todo.listName,
-                    priority: todo.priority || TodoPriority.P3,
+                    priority: normalizeTodoPriority(todo.priority),
                     user_id: user.id,
                     notes: todo.notes
                   });
@@ -253,7 +254,7 @@ const App: React.FC = () => {
                 createdAt: t.created_at,
                 dueDate: t.due_date,
                 listName: t.list_name,
-                priority: (t.priority as TodoPriority) || TodoPriority.P3,
+                priority: normalizeTodoPriority(t.priority),
                 notes: t.notes
               }));
             } else {
@@ -266,13 +267,10 @@ const App: React.FC = () => {
       }
 
       // 3. 统一迁移优先级格式并设置状态
-      const migrated = masterTodos.map(todo => {
-        const t = todo as any;
-        if (t.priority === 'high') return { ...todo, priority: TodoPriority.P0 };
-        if (t.priority === 'medium') return { ...todo, priority: TodoPriority.P1 };
-        if (t.priority === 'low') return { ...todo, priority: TodoPriority.P3 };
-        return { ...todo, priority: todo.priority || TodoPriority.P3 };
-      });
+      const migrated = masterTodos.map(todo => ({
+        ...todo,
+        priority: normalizeTodoPriority(todo.priority),
+      }));
 
       setTodos(migrated);
 
@@ -498,7 +496,7 @@ const App: React.FC = () => {
       completed: false,
       createdAt: new Date().toISOString(),
       listName,
-      priority: priority || TodoPriority.P3
+      priority: normalizeTodoPriority(priority)
     };
 
     setTodos(prev => [newTodo, ...prev]);
@@ -510,7 +508,7 @@ const App: React.FC = () => {
           completed: newTodo.completed,
           created_at: newTodo.createdAt,
           list_name: newTodo.listName,
-          priority: newTodo.priority,
+          priority: normalizeTodoPriority(newTodo.priority),
           user_id: user.id
         });
         if (saved && saved.id) {

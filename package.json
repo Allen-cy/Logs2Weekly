@@ -8,6 +8,7 @@
     "dev:electron": "ELECTRON_RUN_AS_NODE= VITE_ELECTRON=true vite",
     "build": "tsc && vite build",
     "build:electron": "tsc && VITE_ELECTRON=true vite build && electron-builder",
+    "test": "node --experimental-transform-types tests/todo_priority.test.ts",
     "preview": "vite preview"
   },
   "build": {

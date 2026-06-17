@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
 import sys
 import os
+import httpx
 
 # 确保当前目录在路径中，适配不同运行环境
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -11,17 +12,17 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 try:
-    from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags
+    from services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags, get_provider
     from services.smtp_service import send_verification_email
     from database import get_supabase
 except ImportError:
     try:
-        from api.services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags
+        from api.services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags, get_provider
         from api.services.smtp_service import send_verification_email
         from api.database import get_supabase
     except ImportError:
         # 最后的保底尝试：相对导入
-        from .services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags
+        from .services.models_service import test_gemini_connection, test_kimi_connection, generate_summary, aggregate_daily_logs, suggest_tags, get_provider
         from .services.smtp_service import send_verification_email
         from .database import get_supabase
 import json
@@ -29,7 +30,7 @@ import bcrypt
 import re
 import uuid
 import asyncio
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 from contextlib import asynccontextmanager
 
 # --- 后台任务逻辑 ---
@@ -257,6 +258,10 @@ def get_password_hash(password):
 def validate_cn_phone(phone: str) -> bool:
     return bool(re.match(r"^1[3-9]\d{9}$", phone))
 
+def parse_iso_datetime(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
@@ -291,6 +296,8 @@ async def register(user: UserRegister, request: Request):
         if existing_email.data:
             raise HTTPException(status_code=400, detail="邮箱已注册")
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         print(f"Check existing user error: {e}")
 
     hashed_password = get_password_hash(user.password)
@@ -339,7 +346,7 @@ async def verify_email(code: str):
     user_id = verify_data["user_id"]
     
     # 检查过期
-    if datetime.fromisoformat(verify_data["expires_at"].replace("Z", "+00:00")) < datetime.now():
+    if parse_iso_datetime(verify_data["expires_at"]) < datetime.now(timezone.utc):
          raise HTTPException(status_code=400, detail="验证链接已过期")
     
     # 更新用户状态
@@ -849,10 +856,3 @@ async def delete_todo_api(todo_id: str, user_id: int = Query(...)):
     except Exception as e:
         print(f"Delete todo error: {e}")
         raise HTTPException(status_code=500, detail="删除待办失败")
-
-# --- 原有 AI 服务接口 (保留) ---
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-

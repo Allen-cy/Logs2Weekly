@@ -1,7 +1,13 @@
 import asyncio
 import json
 import os
-from services.models_service import generate_summary
+
+import pytest
+
+try:
+    from services.models_service import generate_summary
+except ImportError:
+    from api.services.models_service import generate_summary
 
 # 模拟日志数据
 MOCK_LOGS = [
@@ -12,11 +18,13 @@ MOCK_LOGS = [
     "用户反馈注册流程繁琐，需要优化"
 ]
 
-async def test_prediction_logic():
+async def run_prediction_logic():
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        pytest.skip("GEMINI_API_KEY 未配置，跳过真实 AI 集成测试")
+
     print("🚀 开始测试智能预测逻辑 (TDD - RED)...")
     
-    # 模拟从环境变量获取 API 配置
-    api_key = os.getenv("GEMINI_API_KEY", "dummy_key")
     model_type = "gemini"
     model_name = "gemini-1.5-flash"
     
@@ -49,5 +57,8 @@ async def test_prediction_logic():
         print(f"❌ 解析失败: {e}")
         print(f"原始输出: {result_json_str}")
 
+def test_prediction_logic_integration():
+    asyncio.run(run_prediction_logic())
+
 if __name__ == "__main__":
-    asyncio.run(test_prediction_logic())
+    asyncio.run(run_prediction_logic())
