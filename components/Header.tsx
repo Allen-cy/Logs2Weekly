@@ -33,19 +33,27 @@ const Header: React.FC<HeaderProps> = ({
   isAlwaysOnTop,
   onToggleAlwaysOnTop
 }) => {
+  const currentModelName = config.modelName?.trim() || '未配置模型';
+
   return (
     <header className="app-header bg-surface-dark/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-[100] shadow-md">
       <div className="max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20 gap-3 sm:gap-8">
           <div className="flex items-center gap-4 flex-shrink-0 no-drag">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg shadow-primary/20 cursor-pointer" onClick={() => setViewMode('dashboard')}>
-              <span className="material-icons text-xl">rocket_launch</span>
-            </div>
+            <button
+              type="button"
+              className="w-10 h-10 rounded-xl bg-slate-950 border border-primary/40 flex items-center justify-center text-white shadow-lg shadow-primary/10 cursor-pointer hover:border-primary/70 transition-all"
+              onClick={() => setViewMode('dashboard')}
+              aria-label="返回控制台"
+              title="Logs2Weekly"
+            >
+              <span className="text-[11px] font-black tracking-tight text-primary">L2W</span>
+            </button>
             <div className="hidden xl:block">
               <h1 className="text-lg font-black text-white tracking-tight">Logs2Weekly</h1>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kimi & Gemini Integrated</span>
+                <span className="max-w-[220px] truncate text-[10px] font-bold text-slate-500 uppercase tracking-widest" title={currentModelName}>{currentModelName}</span>
               </div>
             </div>
           </div>
