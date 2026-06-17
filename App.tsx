@@ -59,7 +59,7 @@ const App: React.FC = () => {
   // 自动更新状态
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'available' | 'downloading' | 'downloaded' | 'error'>('idle');
   const [updateProgress, setUpdateProgress] = useState({ percent: 0, transferred: 0, total: 0 });
-  const [updateInfo, setUpdateInfo] = useState({ version: '', releaseNotes: '' });
+  const [updateInfo, setUpdateInfo] = useState<{ version: string; releaseNotes: string; manualDownloadUrl?: string }>({ version: '', releaseNotes: '' });
 
   const handleSuggestTags = async (content: string) => {
     return await suggestTags(content, config);
@@ -100,7 +100,11 @@ const App: React.FC = () => {
         setUpdateStatus('downloaded');
       });
       const cleanupError = (window as any).ipcRenderer.on('update-error', (info: any) => {
-        setUpdateInfo({ version: '', releaseNotes: info?.message || '更新检查失败，请稍后重试' });
+        setUpdateInfo({
+          version: '',
+          releaseNotes: info?.message || '更新检查失败，请稍后重试',
+          manualDownloadUrl: info?.manualDownloadUrl
+        });
         setUpdateStatus('error');
       });
 
@@ -825,9 +829,15 @@ const App: React.FC = () => {
 
               {updateStatus === 'error' && (
                 <div className="flex gap-2">
-                  <button onClick={() => { setUpdateStatus('idle'); (window as any).ipcRenderer?.send('check-for-updates'); }} className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
-                    重试
-                  </button>
+                  {updateInfo.manualDownloadUrl ? (
+                    <button onClick={() => (window as any).ipcRenderer?.send('open-manual-update')} className="flex-1 py-1.5 bg-primary hover:brightness-110 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-primary/20">
+                      手动下载
+                    </button>
+                  ) : (
+                    <button onClick={() => { setUpdateStatus('idle'); (window as any).ipcRenderer?.send('check-for-updates'); }} className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
+                      重试
+                    </button>
+                  )}
                   <button onClick={() => setUpdateStatus('idle')} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-700">
                     稍后
                   </button>

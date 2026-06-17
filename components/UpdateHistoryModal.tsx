@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-export const APP_VERSION = '3.5.1';
+export const APP_VERSION = '3.5.2';
 
 export const UPDATE_HISTORY = [
+    {
+        version: '3.5.2',
+        date: '2026-06-17',
+        features: [
+            { icon: 'verified_user', title: '自动更新签名兜底', desc: '识别 macOS 临时签名导致的自动更新校验失败，并引导用户使用最新版安装包完成一次手动升级。' },
+            { icon: 'download_for_offline', title: '手动下载入口', desc: '当自动替换被系统拦截时，更新弹窗会提供明确的手动下载入口，避免只显示模糊错误。' }
+        ]
+    },
     {
         version: '3.5.1',
         date: '2026-06-17',

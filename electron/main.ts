@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, globalShortcut, Menu, Tray, nativeImage, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, globalShortcut, Menu, Tray, nativeImage, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { autoUpdater } from 'electron-updater'
 
@@ -14,6 +14,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+const MANUAL_UPDATE_URL = 'https://github.com/Allen-cy/Logs2Weekly/releases/latest'
 
 function createTray() {
     const iconPath = path.join(process.env.VITE_PUBLIC, 'pwa-192x192.png')
@@ -314,8 +315,13 @@ function setupAutoUpdater() {
     // 更新错误
     autoUpdater.on('error', (err) => {
         console.error('Auto-updater error:', err)
+        const message = err?.message || '更新检查失败'
+        const isSignatureError = /code signature|代码未能满足|validation|signature/i.test(message)
         win?.webContents.send('update-error', {
-            message: err?.message || '更新检查失败'
+            message: isSignatureError
+                ? '当前安装包使用临时签名，无法通过 macOS 自动替换校验。请手动下载安装最新版，安装一次后再继续使用。'
+                : message,
+            manualDownloadUrl: isSignatureError ? MANUAL_UPDATE_URL : undefined
         })
     })
 
@@ -349,6 +355,14 @@ ipcMain.on('check-for-updates', () => {
 ipcMain.on('download-update', () => {
     autoUpdater.downloadUpdate().catch((err) => {
         console.error('Download update failed:', err)
+        const message = err?.message || '更新下载失败'
+        const isSignatureError = /code signature|代码未能满足|validation|signature/i.test(message)
+        win?.webContents.send('update-error', {
+            message: isSignatureError
+                ? '更新已下载，但当前安装包的临时签名无法通过 macOS 自动替换校验。请手动下载安装最新版。'
+                : message,
+            manualDownloadUrl: isSignatureError ? MANUAL_UPDATE_URL : undefined
+        })
     })
 })
 
@@ -356,4 +370,8 @@ ipcMain.on('download-update', () => {
 ipcMain.on('install-update', () => {
     isQuitting = true
     autoUpdater.quitAndInstall()
+})
+
+ipcMain.on('open-manual-update', () => {
+    shell.openExternal(MANUAL_UPDATE_URL)
 })
